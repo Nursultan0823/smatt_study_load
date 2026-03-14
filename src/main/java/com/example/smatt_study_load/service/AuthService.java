@@ -1,6 +1,7 @@
 package com.example.smatt_study_load.service;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,15 +34,12 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
     }
 
-    public String registerStudent(RegisterRequest request) {
+    public ResponseEntity<?> registerStudent(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email уже занят");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email уже занят");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Username уже занят");
-        }
-
+        try{
         User user = new User();
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
@@ -52,18 +50,21 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return "Заявка отправлена. Ожидайте подтверждения администратора.";
+        return ResponseEntity.ok("Заявка отправлена. Ожидайте подтверждения администратора.");
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при регистрации");
+        }
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public ResponseEntity<?> login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Пользователь не найден"));
-
+                .orElse(null);
+        if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Пользователь не найден");
+            }
         if (user.getStatus() != UserStatus.APPROVED || !user.isEnabled()) {
-               throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "Аккаунт еще не подтвержден администратором"
-        );
+               return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Аккаунт еще не подтвержден администратором");
         }
 
         authenticationManager.authenticate(
@@ -74,6 +75,6 @@ public class AuthService {
         );
 
         String token = jwtService.generateToken(user);
-        return new AuthResponse(token);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token));
     }
 }

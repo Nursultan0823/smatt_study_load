@@ -1,5 +1,7 @@
 package com.example.smatt_study_load.controllers;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.smatt_study_load.enums.UserStatus;
@@ -22,28 +24,44 @@ public class AdminController {
     public List<User> getPendingUsers() {
         return userRepository.findByStatus(UserStatus.PENDING);
     }
+@PutMapping("/approve/{id}")
+public ResponseEntity<?> approveUser(@PathVariable int id) {
+    User user = userRepository.findById(id).orElse(null);
 
-    @PutMapping("/approve/{id}")
-    public String approveUser(@PathVariable int id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Пользователь не найден");
+    }
 
+    try {
         user.setStatus(UserStatus.APPROVED);
         user.setEnabled(true);
         userRepository.save(user);
 
-        return "Пользователь подтвержден";
+        return ResponseEntity.ok("Пользователь подтвержден");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Ошибка при подтверждении пользователя");
+    }
+}
+    @PutMapping("/reject/{id}")
+    public ResponseEntity<?> rejectUser(@PathVariable int id) {
+         User user = userRepository.findById(id).orElse(null);
+
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Пользователь не найден");
     }
 
-    @PutMapping("/reject/{id}")
-    public String rejectUser(@PathVariable int id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
+    try {
         user.setStatus(UserStatus.REJECTED);
-        user.setEnabled(false);
+        user.setEnabled(true);
         userRepository.save(user);
 
-        return "Пользователь отклонен";
+        return ResponseEntity.ok("Пользователь не подтвержден");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Ошибка при подтверждении пользователя");
+    }
     }
 }
