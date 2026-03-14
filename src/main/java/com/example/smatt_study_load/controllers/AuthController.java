@@ -6,11 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import com.example.smatt_study_load.DTO.LoginRequest;
 import com.example.smatt_study_load.DTO.RegisterRequest;
 import com.example.smatt_study_load.service.AuthService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController
+@CrossOrigin("*")
 @RequestMapping("/auth")
 public class AuthController {
 
