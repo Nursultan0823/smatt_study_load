@@ -7,9 +7,8 @@ import com.example.smatt_study_load.DTO.LoginRequest;
 import com.example.smatt_study_load.DTO.RegisterRequest;
 import com.example.smatt_study_load.service.AuthService;
 
-
 @RestController
-@CrossOrigin("*")
+@CrossOrigin(origins = "*")
 @RequestMapping("/auth")
 public class AuthController {
 
@@ -18,7 +17,7 @@ public class AuthController {
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
-    
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         return authService.registerStudent(request);
