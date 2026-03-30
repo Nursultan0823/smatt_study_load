@@ -1,0 +1,47 @@
+package com.example.smatt_study_load.service;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import com.example.smatt_study_load.DTO.CurrentTeacherDTO;
+import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.models.TeacherProfile;
+import com.example.smatt_study_load.models.User;
+
+import com.example.smatt_study_load.repository.TeacherProfileRepository;
+import com.example.smatt_study_load.repository.UserRepository;
+import com.example.smatt_study_load.utils.UserDetailsImpl;
+
+@Service
+public class TeacherService {
+         private final UserRepository userRepository;
+        private final TeacherProfileRepository teacherProfileRepository;
+    public TeacherService (UserRepository userRepository,TeacherProfileRepository teacherProfileRepository) {
+        this.userRepository = userRepository;
+        this.teacherProfileRepository=teacherProfileRepository;
+    }
+      public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return ResponseEntity.status(401).body(new Response("Пользователь не авторизован"));
+        }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        TeacherProfile teacherProfile=teacherProfileRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        CurrentTeacherDTO dto = new CurrentTeacherDTO(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.isEnabled(),
+                user.getRoles().stream()
+                        .map(role -> role.getName().name())
+                        .toList(),
+                teacherProfile.getPosition().toString()
+        );
+
+        return ResponseEntity.ok(dto);
+    }
+}
