@@ -129,8 +129,8 @@ public class AuthService {
                         request.getPassword()
                 )
         );
-
+       
         String token = jwtService.generateToken(user);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token,user.getId(),user.getRoles()));
     }
 }

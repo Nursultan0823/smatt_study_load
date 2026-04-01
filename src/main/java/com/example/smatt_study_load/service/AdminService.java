@@ -84,7 +84,8 @@ public class AdminService {
                                 user.getId(),
                                 user.getFullName(),
                                 user.getEmail(),
-                                user.getStatus().name()
+                                user.getStatus().name(),
+                                user.getRoles()
                         ))
                         .toList();
         return users;
