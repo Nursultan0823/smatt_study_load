@@ -12,12 +12,14 @@ public class CurrentTeacherDTO {
     private boolean enabled;
     private List<String> roles;
     private String position;
-     public CurrentTeacherDTO(Integer id, String fullName, String email, boolean enabled, List<String> roles,String position) {
+       private int teacherId;
+     public CurrentTeacherDTO(Integer id, String fullName, String email, boolean enabled, List<String> roles,String position,int teacherId) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
         this.enabled = enabled;
         this.roles = roles;
         this.position=position;
+        this.teacherId=teacherId;
     }
 }

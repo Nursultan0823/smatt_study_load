@@ -46,7 +46,8 @@ public class TeacherService {
                 user.getRoles().stream()
                         .map(role -> role.getName().name())
                         .toList(),
-                teacherProfile.getPosition().toString()
+                teacherProfile.getPosition().toString(),
+                teacherProfile.getId()
         );
 
         return ResponseEntity.ok(dto);

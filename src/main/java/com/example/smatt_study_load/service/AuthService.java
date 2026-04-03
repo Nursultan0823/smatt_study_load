@@ -131,6 +131,6 @@ public class AuthService {
         );
        
         String token = jwtService.generateToken(user);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token,user.getId(),user.getRoles()));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token));
     }
 }

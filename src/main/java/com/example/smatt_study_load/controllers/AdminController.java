@@ -87,5 +87,5 @@ public ResponseEntity<?> approveUser(@PathVariable int id) {
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
        return adminService.getCurrentUser(authentication);
     }
-      
+    
 }
