@@ -11,30 +11,34 @@ import org.springframework.stereotype.Service;
 import com.example.smatt_study_load.DTO.AddDisciplineRequest;
 import com.example.smatt_study_load.DTO.CurrentUserDto;
 import com.example.smatt_study_load.DTO.GroupDTO;
+import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.UpdateGroupDto;
 import com.example.smatt_study_load.DTO.UserDto;
+import com.example.smatt_study_load.enums.Role;
 import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
+import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
+import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.UserRepository;
+import com.example.smatt_study_load.utils.StudentProfileMapper;
 import com.example.smatt_study_load.utils.UserDetailsImpl;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
     private final UserRepository userRepository;
     private final GroupEntityRepository groupEntityRepository;
     private final DisciplineRepository disciplineRepository;
-    public AdminService(GroupEntityRepository groupEntityRepository,
-                        DisciplineRepository disciplineRepository,
-                        UserRepository userRepository){
-        this.groupEntityRepository=groupEntityRepository;
-        this.disciplineRepository=disciplineRepository;
-        this.userRepository=userRepository;
-    }
+     private final StudentProfileRepository studentProfileRepository;
+  
     public ResponseEntity<?> AddGroupEntity(GroupDTO groupDTO){
         try{
         GroupEntity groupEntity =new GroupEntity();
@@ -90,4 +94,66 @@ public class AdminService {
                         .toList();
         return users;
     }
+    public GroupStudentsResponseDto getStudentsByGroupId(int groupId) {
+        GroupEntity group = groupEntityRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Группа не найдена"));
+
+        List<StudentProfile> students = studentProfileRepository.findAllByGroupIdWithUserAndGroup(groupId);
+
+        return StudentProfileMapper.toGroupStudentsResponseDto(group, students);
+    }
+     public ResponseEntity<?> updateGroup(int groupId, UpdateGroupDto dto) {
+        GroupEntity group = groupEntityRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Группа не найдена"));
+        try {
+            if (dto.getName() != null && !dto.getName().isBlank()) {
+            if (groupEntityRepository.existsByNameAndIdNot(dto.getName(), groupId)) {
+                throw new RuntimeException("Группа с таким именем уже существует");
+            }
+            group.setName(dto.getName());
+        }
+
+        if (dto.getCourseNumber() != null) {
+            group.setCourseNumber(dto.getCourseNumber());
+        }
+
+        if (dto.getSpecialty() != null && !dto.getSpecialty().isBlank()) {
+            group.setSpecialty(dto.getSpecialty());
+        }
+
+        if (dto.getStarostaId() != null) {
+            StudentProfile starosta = studentProfileRepository.findById(dto.getStarostaId())
+                    .orElseThrow(() -> new RuntimeException("Староста не найден"));
+
+            if (starosta.getGroup() == null || starosta.getGroup().getId() != groupId) {
+                throw new RuntimeException("Староста должен быть студентом этой группы");
+            }
+
+            group.setStarosta(starosta);
+        }
+
+        groupEntityRepository.save(group);
+        return ResponseEntity.ok(new Response("Группа успешно обновлена"));
+    }
+        catch (Exception e) {   
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ошибка обновления группы");
+        }
+    }
+    public void deleteGroup(int groupId) {
+    GroupEntity group = groupEntityRepository.findById(groupId)
+            .orElseThrow(() -> new RuntimeException("Группа не найдена"));
+
+    StudentProfile starosta = group.getStarosta();
+
+    if (starosta != null && starosta.getUser() != null) {
+        User user = starosta.getUser();
+        user.getRoles().remove(Role.GROUP_LEADER);
+        userRepository.save(user);
+    }
+
+    group.setStarosta(null);
+    groupEntityRepository.save(group);
+
+    groupEntityRepository.delete(group);
+}
 }

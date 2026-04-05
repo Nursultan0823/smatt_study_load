@@ -30,7 +30,7 @@ public class StudentProfile {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "group_id")
+    @JoinColumn(name = "group_id", nullable = false)
     private GroupEntity group;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)

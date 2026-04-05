@@ -15,10 +15,10 @@ public class UmmFile {
 
     @Column(nullable = false)
     private String fileName;
-
-    @Column(nullable = false, length = 1000)
-    private String filePath;
-
+    @Lob
+    @Column(name = "file_data")
+    private byte[] fileData;
+    
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "discipline_id", nullable = false)

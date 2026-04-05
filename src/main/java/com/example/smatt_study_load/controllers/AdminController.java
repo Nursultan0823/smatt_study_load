@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.smatt_study_load.DTO.AddDisciplineRequest;
 import com.example.smatt_study_load.DTO.GroupDTO;
+import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.UpdateGroupDto;
 import com.example.smatt_study_load.DTO.UserDto;
 import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.User;
@@ -87,5 +89,25 @@ public ResponseEntity<?> approveUser(@PathVariable int id) {
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
        return adminService.getCurrentUser(authentication);
     }
-    
+     @GetMapping("/group/{groupId}")
+    public GroupStudentsResponseDto getStudentsByGroupId(@PathVariable int groupId) {
+        return adminService.getStudentsByGroupId(groupId);
+    }
+        @PutMapping("/updategroup/{groupId}")
+    public ResponseEntity<?> updateGroup(
+            @PathVariable int groupId,
+            @RequestBody UpdateGroupDto dto
+    ) {
+        return adminService.updateGroup(groupId, dto);
+    }
+    @DeleteMapping("/{groupId}")
+public ResponseEntity<?> deleteGroup(@PathVariable int groupId) {
+    try {
+        adminService.deleteGroup(groupId);
+    return ResponseEntity.ok(new Response("Группа удалена вместе со студентами и расписанием"));
+    } catch (Exception e) {
+       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("Не удолось удалить группу"));
+    }
+   
+}
 }
