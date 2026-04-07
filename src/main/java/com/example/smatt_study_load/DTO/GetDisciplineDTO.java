@@ -7,6 +7,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class GetDisciplineDTO {
     private int id;
-    private String description;
     private String name;
+    private String description;
 }
