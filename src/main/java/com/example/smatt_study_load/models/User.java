@@ -53,9 +53,9 @@ public class User {
     private Set<Roles> roles = new HashSet<>();
      @Column(nullable = false)
     private boolean enabled;
-        @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private StudentProfile studentProfile;
-
+    
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private TeacherProfile teacherProfile;
 }

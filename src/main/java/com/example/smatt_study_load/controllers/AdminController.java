@@ -7,30 +7,36 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.smatt_study_load.DTO.AddDisciplineRequest;
+import com.example.smatt_study_load.DTO.GetDisciplineDTO;
+import com.example.smatt_study_load.DTO.GetgroupDTO;
 import com.example.smatt_study_load.DTO.GroupDTO;
 import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.UpdateGroupDto;
 import com.example.smatt_study_load.DTO.UserDto;
 import com.example.smatt_study_load.enums.UserStatus;
+import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.User;
+import com.example.smatt_study_load.repository.DisciplineRepository;
+import com.example.smatt_study_load.repository.GroupEntityRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 import com.example.smatt_study_load.service.AdminService;
+
+import lombok.AllArgsConstructor;
 
 import java.util.List;
 
 
+
 @RestController
+@AllArgsConstructor
 @RequestMapping("/admin")
 public class AdminController {
 
     private final UserRepository userRepository;
     private final AdminService adminService;
-
-    public AdminController(UserRepository userRepository,AdminService adminService) {
-        this.userRepository = userRepository;
-        this.adminService=adminService;
-    }
+    private final GroupEntityRepository groupEntityRepository;
+    private final DisciplineRepository disciplineRepository;
 
     @GetMapping("/pending")
     public List<UserDto> getPendingUsers() {
@@ -93,15 +99,15 @@ public ResponseEntity<?> approveUser(@PathVariable int id) {
     public GroupStudentsResponseDto getStudentsByGroupId(@PathVariable int groupId) {
         return adminService.getStudentsByGroupId(groupId);
     }
-        @PutMapping("/updategroup/{groupId}")
+        @PutMapping("/group/{groupId}")
     public ResponseEntity<?> updateGroup(
             @PathVariable int groupId,
             @RequestBody UpdateGroupDto dto
     ) {
         return adminService.updateGroup(groupId, dto);
     }
-    @DeleteMapping("/{groupId}")
-public ResponseEntity<?> deleteGroup(@PathVariable int groupId) {
+    @DeleteMapping("/group/{groupId}")
+    public ResponseEntity<?> deleteGroup(@PathVariable int groupId) {
     try {
         adminService.deleteGroup(groupId);
     return ResponseEntity.ok(new Response("Группа удалена вместе со студентами и расписанием"));
@@ -110,4 +116,30 @@ public ResponseEntity<?> deleteGroup(@PathVariable int groupId) {
     }
    
 }
+    @GetMapping("/group")
+    public List<GetgroupDTO> getGroup(){
+        return groupEntityRepository.findAllGetgroup();
+    }
+     @GetMapping("/discipline")
+    public List<GetDisciplineDTO> getDiscipline(){
+        return disciplineRepository.findAllDisciplineDTO();
+    }
+           @PutMapping("/discipline/{disciplineId}")
+    public ResponseEntity<?> updateGroup(
+            @PathVariable int disciplineId,
+            @RequestBody AddDisciplineRequest dto
+    ) {
+        return adminService.updateDiscipline(disciplineId, dto);
+    }
+    @DeleteMapping("/discipline/{disciplineId}")
+    public ResponseEntity<?> deleteDiscipline(@PathVariable int disciplineId){
+        try{
+        Discipline discipline = disciplineRepository.findById(disciplineId).orElse(null);
+        disciplineRepository.delete(discipline);
+        return ResponseEntity.ok(new Response("Дисциплина удалена"));
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("ошибка удаления "));
+        }
+    }
+    
 }

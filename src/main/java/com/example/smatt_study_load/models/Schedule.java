@@ -42,6 +42,6 @@ public class Schedule {
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile teacher;
     @JsonIgnore
-    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
 }

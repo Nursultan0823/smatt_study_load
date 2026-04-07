@@ -131,7 +131,7 @@ public class AdminService {
 
             group.setStarosta(starosta);
         }
-
+        
         groupEntityRepository.save(group);
         return ResponseEntity.ok(new Response("Группа успешно обновлена"));
     }
@@ -155,5 +155,17 @@ public class AdminService {
     groupEntityRepository.save(group);
 
     groupEntityRepository.delete(group);
-}
+    }
+    public ResponseEntity<?> updateDiscipline(int id, AddDisciplineRequest dto){
+        try{
+        Discipline discipline = new Discipline();
+        discipline.setId(id);
+        discipline.setName(dto.getName());
+        discipline.setDescription(dto.getDescription());
+        disciplineRepository.save(discipline);
+        return ResponseEntity.ok(new Response("Дисциплина обновлена"));
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("Ошибка обновлении"));
+        }
+    }
 }
