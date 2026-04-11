@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -43,10 +42,6 @@ public class Task {
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile createdBy;
 
-    @ManyToOne
-    @JsonIgnore
-    @JoinColumn(name = "schedule_id")
-    private Schedule schedule;
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskAttachment> attachments = new ArrayList<>();
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -6,15 +6,11 @@ import lombok.ToString;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 
 @Data
 @Entity
-@ToString(exclude = {"group", "discipline", "teacher", "tasks"})
+@ToString(exclude = {"group", "discipline", "teacher"})
 @Table(name = "schedules")
 public class Schedule {
      @Id
@@ -41,7 +37,5 @@ public class Schedule {
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile teacher;
-    @JsonIgnore
-    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> tasks = new ArrayList<>();
+
 }

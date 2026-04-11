@@ -124,4 +124,34 @@ public class GroupLeaderService {
 
         return scheduleRepository.save(schedule);
     }
+    public void deleteSchedule(int id) {
+    if (!scheduleRepository.existsById(id)) {
+        throw new RuntimeException("Расписание не найдено");
+    }
+    scheduleRepository.deleteById(id);
+}
+public void updateSchedule(int id, AddScheduleDTO dto) {
+    Schedule schedule = scheduleRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Расписание не найдено"));
+
+    GroupEntity group = groupRepository.findById(dto.getGroupId())
+            .orElseThrow(() -> new RuntimeException("Группа не найдена"));
+
+    Discipline discipline = disciplineRepository.findById(dto.getDisciplineId())
+            .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
+
+    TeacherProfile teacher = teacherProfileRepository.findById(dto.getTeacherId())
+            .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
+
+    schedule.setDayOfWeek(dto.getDayOfWeek());
+    schedule.setStartTime(dto.getStartTime());
+    schedule.setEndTime(dto.getEndTime());
+    schedule.setRoom(dto.getRoom());
+    schedule.setUrl(dto.getUrl());
+    schedule.setGroup(group);
+    schedule.setDiscipline(discipline);
+    schedule.setTeacher(teacher);
+
+    scheduleRepository.save(schedule);
+}
 }

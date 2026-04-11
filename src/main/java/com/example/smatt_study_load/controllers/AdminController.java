@@ -7,11 +7,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.smatt_study_load.DTO.AddDisciplineRequest;
+import com.example.smatt_study_load.DTO.ChangeStudentGroupRequest;
 import com.example.smatt_study_load.DTO.GetDisciplineDTO;
 import com.example.smatt_study_load.DTO.GetgroupDTO;
 import com.example.smatt_study_load.DTO.GroupDTO;
 import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.UpdateGroupDto;
 import com.example.smatt_study_load.DTO.UserDto;
 import com.example.smatt_study_load.enums.UserStatus;
@@ -116,6 +118,11 @@ public ResponseEntity<?> approveUser(@PathVariable int id) {
     }
    
 }
+@PutMapping("/student/change-group")
+public String changeStudentGroup(@RequestBody ChangeStudentGroupRequest request) {
+    adminService.changeStudentGroup(request.getStudentId(), request.getGroupId());
+    return "Группа студента успешно изменена";
+}
     @GetMapping("/group")
     public List<GetgroupDTO> getGroup(){
         return groupEntityRepository.findAllGetgroup();
@@ -141,5 +148,8 @@ public ResponseEntity<?> approveUser(@PathVariable int id) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("ошибка удаления "));
         }
     }
-    
+    @GetMapping("/group/{groupId}/schedules")
+public List<ScheduleDto> getAllSchedulesByGroup(@PathVariable int groupId) {
+    return adminService.getAllSchedulesByGroup(groupId);
+}
 }

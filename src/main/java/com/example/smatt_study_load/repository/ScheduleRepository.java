@@ -58,4 +58,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule,Integer> {
             LocalTime startTime,
             LocalTime endTime
     );
+    List<Schedule> findByGroupIdOrderByDayOfWeekAscStartTimeAsc(int groupId);
+     List<Schedule> findByTeacherIdOrderByDayOfWeekAscStartTimeAsc(int teacherId);
 }

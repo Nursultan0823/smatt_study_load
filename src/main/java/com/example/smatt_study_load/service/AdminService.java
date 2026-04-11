@@ -13,16 +13,20 @@ import com.example.smatt_study_load.DTO.CurrentUserDto;
 import com.example.smatt_study_load.DTO.GroupDTO;
 import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.UpdateGroupDto;
 import com.example.smatt_study_load.DTO.UserDto;
 import com.example.smatt_study_load.enums.Role;
 import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
+import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
+import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
+import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 import com.example.smatt_study_load.utils.StudentProfileMapper;
@@ -38,7 +42,7 @@ public class AdminService {
     private final GroupEntityRepository groupEntityRepository;
     private final DisciplineRepository disciplineRepository;
      private final StudentProfileRepository studentProfileRepository;
-  
+    private final ScheduleRepository scheduleRepository;
     public ResponseEntity<?> AddGroupEntity(GroupDTO groupDTO){
         try{
         GroupEntity groupEntity =new GroupEntity();
@@ -168,4 +172,39 @@ public class AdminService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("Ошибка обновлении"));
         }
     }
+    public void changeStudentGroup(int studentId, int groupId) {
+    StudentProfile student = studentProfileRepository.findById(studentId)
+            .orElseThrow(() -> new RuntimeException("Студент не найден"));
+
+    GroupEntity newGroup = groupEntityRepository.findById(groupId)
+            .orElseThrow(() -> new RuntimeException("Группа не найдена"));
+
+    student.setGroup(newGroup);
+
+    studentProfileRepository.save(student);
+}
+public List<ScheduleDto> getAllSchedulesByGroup(int groupId) {
+    List<Schedule> schedules = scheduleRepository.findByGroupIdOrderByDayOfWeekAscStartTimeAsc(groupId);
+
+    return schedules.stream()
+            .map(schedule -> new ScheduleDto(
+                    schedule.getId(),
+                    schedule.getDayOfWeek().name(),
+                    schedule.getStartTime().toString(),
+                    schedule.getEndTime().toString(),
+                    schedule.getRoom(),
+                    schedule.getDiscipline().getName(),
+                    getTeacherName(schedule.getTeacher()),
+                    schedule.getTeacher().getPosition(),
+                    schedule.getUrl()
+            ))
+            .toList();
+}
+private String getTeacherName(TeacherProfile teacher) {
+    if (teacher == null || teacher.getUser() == null) {
+        return "Неизвестно";
+    }
+
+    return teacher.getUser().getFullName();
+}
 }
