@@ -1,9 +1,20 @@
 package com.example.smatt_study_load.service;
 
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
 import com.example.smatt_study_load.DTO.AddScheduleDTO;
-import com.example.smatt_study_load.DTO.ScheduleConflictCheckResponse;
+import com.example.smatt_study_load.DTO.TeacherScheduleDto;
+import com.example.smatt_study_load.DTO.UpcomingScheduleDto;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
 import com.example.smatt_study_load.models.Schedule;
@@ -13,95 +24,18 @@ import com.example.smatt_study_load.repository.GroupEntityRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
-public class GroupLeaderService {
+public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final GroupEntityRepository groupRepository;
     private final DisciplineRepository disciplineRepository;
     private final TeacherProfileRepository teacherProfileRepository;
 
-   public ScheduleConflictCheckResponse validateSchedule(
-            int groupId,
-            int teacherId,
-            String room,
-            java.time.DayOfWeek dayOfWeek,
-            java.time.LocalTime startTime,
-            java.time.LocalTime endTime
-    ) {
-        if (dayOfWeek == null || startTime == null || endTime == null) {
-            return new ScheduleConflictCheckResponse(
-                    true, false, false, false,
-                    "День недели и время обязательны"
-            );
-        }
-
-        if (!startTime.isBefore(endTime)) {
-            return new ScheduleConflictCheckResponse(
-                    true, false, false, false,
-                    "Время начала должно быть меньше времени окончания"
-            );
-        }
-
-        boolean groupConflict = false;
-        boolean teacherConflict = false;
-        boolean roomConflict = false;
-
-        if (groupId > 0) {
-            groupConflict = scheduleRepository.existsGroupConflict(
-                    groupId, dayOfWeek, startTime, endTime
-            );
-        }
-
-        if (teacherId > 0) {
-            teacherConflict = scheduleRepository.existsTeacherConflict(
-                    teacherId, dayOfWeek, startTime, endTime
-            );
-        }
-
-        if (room != null && !room.isBlank()) {
-            roomConflict = scheduleRepository.existsRoomConflict(
-                    room, dayOfWeek, startTime, endTime
-            );
-        }
-
-        boolean conflict = groupConflict || teacherConflict || roomConflict;
-
-        String message = "Конфликтов нет";
-        if (groupConflict) {
-            message = "У группы уже есть занятие в это время";
-        } else if (teacherConflict) {
-            message = "У преподавателя уже есть занятие в это время";
-        } else if (roomConflict) {
-            message = "Аудитория уже занята в это время";
-        }
-
-        return new ScheduleConflictCheckResponse(
-                conflict,
-                groupConflict,
-                teacherConflict,
-                roomConflict,
-                message
-        );
-    }
-
-    @Transactional
     public Schedule createSchedule(AddScheduleDTO dto) {
-        ScheduleConflictCheckResponse validation = validateSchedule(
-                dto.getGroupId(),
-                dto.getTeacherId(),
-                dto.getRoom(),
-                dto.getDayOfWeek(),
-                dto.getStartTime(),
-                dto.getEndTime()
-        );
 
-        if (validation.isConflict()) {
-            throw new RuntimeException(validation.getMessage());
-        }
 
         GroupEntity group = groupRepository.findById(dto.getGroupId())
                 .orElseThrow(() -> new RuntimeException("Группа не найдена"));
@@ -154,4 +88,69 @@ public void updateSchedule(int id, AddScheduleDTO dto) {
 
     scheduleRepository.save(schedule);
 }
+  public List<TeacherScheduleDto> getSchedulesByTeacher(int teacherId) {
+    List<Schedule> schedules = scheduleRepository.findByTeacherIdOrderByDayOfWeekAscStartTimeAsc(teacherId);
+
+    return schedules.stream().map(schedule -> {
+        TeacherScheduleDto dto = new TeacherScheduleDto();
+        dto.setId(schedule.getId());
+        dto.setDayOfWeek(schedule.getDayOfWeek());
+        dto.setStartTime(schedule.getStartTime());
+        dto.setEndTime(schedule.getEndTime());
+        dto.setRoom(schedule.getRoom());
+        dto.setUrl(schedule.getUrl());
+        dto.setDisciplineName(schedule.getDiscipline().getName());
+        dto.setGroupName(schedule.getGroup().getName());
+        return dto;
+    }).toList();
+}
+public List<UpcomingScheduleDto> getUpcomingSchedulesByGroup(int groupId, int limit) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Schedule> schedules = scheduleRepository.findByGroupId(groupId);
+
+        return schedules.stream()
+                .map(schedule -> {
+                    LocalDateTime nextStart = getNextDateTime(schedule.getDayOfWeek(), schedule.getStartTime(), now);
+                    LocalDateTime nextEnd = getNextDateTime(schedule.getDayOfWeek(), schedule.getEndTime(), now);
+
+                    if (nextEnd.isBefore(nextStart)) {
+                        nextEnd = nextStart.plusMinutes(Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes());
+                    }
+
+                    String teacherName = schedule.getTeacher() != null
+                            ? schedule.getTeacher().toString()
+                            : null;
+
+                    return new UpcomingScheduleDto(
+                            schedule.getId(),
+                            schedule.getDiscipline().getName(),
+                            teacherName,
+                            schedule.getRoom(),
+                            nextStart,
+                            nextEnd
+                    );
+                })
+                .sorted(Comparator.comparing(UpcomingScheduleDto::getStartDateTime))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+     private LocalDateTime getNextDateTime(DayOfWeek targetDay, LocalTime targetTime, LocalDateTime now) {
+        LocalDate today = now.toLocalDate();
+        DayOfWeek currentDay = now.getDayOfWeek();
+
+        LocalDate targetDate;
+
+        if (currentDay == targetDay) {
+            if (targetTime.isAfter(now.toLocalTime())) {
+                targetDate = today;
+            } else {
+                targetDate = today.with(TemporalAdjusters.next(targetDay));
+            }
+        } else {
+            targetDate = today.with(TemporalAdjusters.nextOrSame(targetDay));
+        }
+
+        return LocalDateTime.of(targetDate, targetTime);
+    }
 }

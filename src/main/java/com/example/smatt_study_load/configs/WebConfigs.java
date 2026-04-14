@@ -47,7 +47,9 @@ public class WebConfigs {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers("/leader/**").hasAnyRole("GROUP_LEADER", "ADMIN")
+                        .requestMatchers("/schedule/{teacherId}/schedules").hasAnyRole("TEACHER")
+                        .requestMatchers("/schedule/{groupId}/student").hasAnyRole("STUDENT")
+                        .requestMatchers("/schedule/**").hasAnyRole("GROUP_LEADER", "ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

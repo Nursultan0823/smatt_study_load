@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class ChangeStudentGroupRequest {
        private int studentId;
-    private int groupId;
+        private int groupId;
 }

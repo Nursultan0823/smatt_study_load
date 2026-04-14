@@ -1,5 +1,7 @@
 package com.example.smatt_study_load.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -21,6 +23,7 @@ public class TaskAttachment {
     private byte[] fileData;
 
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 }
