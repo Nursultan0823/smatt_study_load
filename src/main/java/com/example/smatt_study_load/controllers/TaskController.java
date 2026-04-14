@@ -28,7 +28,7 @@ import lombok.AllArgsConstructor;
 public class TaskController {
     private final TaskRepository taskRepository;
     private final TaskService taskService;
-          @PostMapping("/with-file")
+          @PostMapping("/add")
     public ResponseEntity<?> addTaskWithFile(
             @RequestParam String title,
             @RequestParam String description,
@@ -39,7 +39,7 @@ public class TaskController {
         taskService.addTaskWithFile(title, description, disciplineId, createdById, file);
         return ResponseEntity.ok(new Response("Задача с файлом добавлена"));
     }
-    @GetMapping("/{disciplineId}/tasks")
+    @GetMapping("/{disciplineId}")
 public List<TaskDto> getTasksByDiscipline(@PathVariable int disciplineId) {
     return taskService.getTasksByDiscipline(disciplineId);
 }
