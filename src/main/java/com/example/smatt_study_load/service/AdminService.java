@@ -24,8 +24,10 @@ import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.User;
+import com.example.smatt_study_load.models.Roles;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
+import com.example.smatt_study_load.repository.RoleRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.UserRepository;
@@ -41,8 +43,9 @@ public class AdminService {
     private final UserRepository userRepository;
     private final GroupEntityRepository groupEntityRepository;
     private final DisciplineRepository disciplineRepository;
-     private final StudentProfileRepository studentProfileRepository;
+    private final StudentProfileRepository studentProfileRepository;
     private final ScheduleRepository scheduleRepository;
+    private final RoleRepository roleRepository;
     public ResponseEntity<?> AddGroupEntity(GroupDTO groupDTO){
         try{
         GroupEntity groupEntity =new GroupEntity();
@@ -126,14 +129,29 @@ public class AdminService {
         }
 
         if (dto.getStarostaId() != null) {
-            StudentProfile starosta = studentProfileRepository.findById(dto.getStarostaId())
-                    .orElseThrow(() -> new RuntimeException("Староста не найден"));
+            Roles groupLeaderRole = roleRepository.findByName(Role.GROUP_LEADER)
+                    .orElseThrow(() -> new RuntimeException("Роль GROUP_LEADER не найдена"));
 
-            if (starosta.getGroup() == null || starosta.getGroup().getId() != groupId) {
-                throw new RuntimeException("Староста должен быть студентом этой группы");
+            StudentProfile oldStarosta = group.getStarosta();
+            if (oldStarosta != null && oldStarosta.getUser() != null) {
+                oldStarosta.getUser().getRoles().remove(groupLeaderRole);
+                userRepository.save(oldStarosta.getUser());
             }
 
-            group.setStarosta(starosta);
+            if (dto.getStarostaId() == 0) {
+                group.setStarosta(null);
+            } else {
+                StudentProfile starosta = studentProfileRepository.findById(dto.getStarostaId())
+                        .orElseThrow(() -> new RuntimeException("Староста не найден"));
+
+                if (starosta.getGroup() == null || starosta.getGroup().getId() != groupId) {
+                    throw new RuntimeException("Староста должен быть студентом этой группы");
+                }
+
+                starosta.getUser().getRoles().add(groupLeaderRole);
+                userRepository.save(starosta.getUser());
+                group.setStarosta(starosta);
+            }
         }
         
         groupEntityRepository.save(group);
@@ -150,9 +168,13 @@ public class AdminService {
     StudentProfile starosta = group.getStarosta();
 
     if (starosta != null && starosta.getUser() != null) {
-        User user = starosta.getUser();
-        user.getRoles().remove(Role.GROUP_LEADER);
-        userRepository.save(user);
+        Roles groupLeaderRole = roleRepository.findByName(Role.GROUP_LEADER)
+                .orElse(null);
+        if (groupLeaderRole != null) {
+            User user = starosta.getUser();
+            user.getRoles().remove(groupLeaderRole);
+            userRepository.save(user);
+        }
     }
 
     group.setStarosta(null);
