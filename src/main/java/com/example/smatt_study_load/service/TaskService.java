@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -59,6 +60,7 @@ public class TaskService {
 
     taskRepository.save(task);
 }
+@Transactional(readOnly = true)
 public List<TaskDto> getTasksByDiscipline(int disciplineId) {
     return taskRepository.findByDisciplineId(disciplineId).stream()
             .map(task -> {
@@ -71,12 +73,12 @@ public List<TaskDto> getTasksByDiscipline(int disciplineId) {
 
                 dto.setAttachments(
                         task.getAttachments().stream()
-                                .map(attachment -> {
-                                    TaskAttachmentDto attachmentDto = new TaskAttachmentDto();
-                                    attachmentDto.setId(attachment.getId());
-                                    attachmentDto.setFileName(attachment.getFileName());
-                                    attachmentDto.setContentType(attachment.getContentType());
-                                    return attachmentDto;
+                                .map(att -> {
+                                    TaskAttachmentDto a = new TaskAttachmentDto();
+                                    a.setId(att.getId());
+                                    a.setFileName(att.getFileName());
+                                    a.setContentType(att.getContentType());
+                                    return a;
                                 })
                                 .toList()
                 );

@@ -28,7 +28,7 @@ import lombok.AllArgsConstructor;
 public class TaskController {
     private final TaskRepository taskRepository;
     private final TaskService taskService;
-          @PostMapping("/add")
+    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> addTaskWithFile(
             @RequestParam String title,
             @RequestParam String description,

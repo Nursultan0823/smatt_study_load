@@ -50,8 +50,10 @@ public class WebConfigs {
                         .requestMatchers("/schedule/{teacherId}/schedules").hasAnyRole("TEACHER")
                         .requestMatchers("/schedule/{groupId}/student").hasAnyRole("STUDENT")
                         .requestMatchers("/schedule/**").hasAnyRole("GROUP_LEADER", "ADMIN")
-                        .requestMatchers("/tack/{disciplineId}").hasAnyRole("STUDENT","GROUP_LEADER")
-                        .requestMatchers("/task/**").hasAnyRole("TEACHER","ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/task/{disciplineId}").hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/task/add").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/task/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/task/**").hasAnyRole("TEACHER", "ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -65,7 +67,7 @@ public class WebConfigs {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
