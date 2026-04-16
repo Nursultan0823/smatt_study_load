@@ -40,6 +40,14 @@ public class StudentProfileMapper {
         dto.setName(group.getName());
         dto.setCourseNumber(group.getCourseNumber());
         dto.setSpecialty(group.getSpecialty());
+
+        if (group.getStarosta() != null) {
+            dto.setStarostaId(group.getStarosta().getId());
+            if (group.getStarosta().getUser() != null) {
+                dto.setStarostaName(group.getStarosta().getUser().getFullName());
+            }
+        }
+
         return dto;
     }
 

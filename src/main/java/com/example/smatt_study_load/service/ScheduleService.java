@@ -13,7 +13,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.example.smatt_study_load.DTO.AddScheduleDTO;
+import com.example.smatt_study_load.DTO.GetDisciplineDTO;
+import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.TeacherScheduleDto;
+import com.example.smatt_study_load.DTO.TeacherShortDto;
 import com.example.smatt_study_load.DTO.UpcomingScheduleDto;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
@@ -118,9 +121,7 @@ public List<UpcomingScheduleDto> getUpcomingSchedulesByGroup(int groupId, int li
                         nextEnd = nextStart.plusMinutes(Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes());
                     }
 
-                    String teacherName = schedule.getTeacher() != null
-                            ? schedule.getTeacher().toString()
-                            : null;
+                    String teacherName = getTeacherName(schedule.getTeacher());
 
                     return new UpcomingScheduleDto(
                             schedule.getId(),
@@ -135,6 +136,45 @@ public List<UpcomingScheduleDto> getUpcomingSchedulesByGroup(int groupId, int li
                 .limit(limit)
                 .collect(Collectors.toList());
     }
+    public List<ScheduleDto> getSchedulesByGroup(int groupId) {
+        List<Schedule> schedules = scheduleRepository.findByGroupIdOrderByDayOfWeekAscStartTimeAsc(groupId);
+
+        return schedules.stream()
+                .map(schedule -> new ScheduleDto(
+                        schedule.getId(),
+                        schedule.getDayOfWeek().name(),
+                        schedule.getStartTime().toString(),
+                        schedule.getEndTime().toString(),
+                        schedule.getRoom(),
+                        schedule.getDiscipline().getName(),
+                        getTeacherName(schedule.getTeacher()),
+                        schedule.getTeacher() != null ? schedule.getTeacher().getPosition() : null,
+                        schedule.getUrl()
+                ))
+                .toList();
+    }
+
+    public List<GetDisciplineDTO> getAllDisciplines() {
+        return disciplineRepository.findAllDisciplineDTO();
+    }
+
+    public List<TeacherShortDto> getAllTeachers() {
+        return teacherProfileRepository.findAll().stream()
+                .map(tp -> new TeacherShortDto(
+                        tp.getId(),
+                        tp.getUser() != null ? tp.getUser().getFullName() : "Неизвестно",
+                        tp.getPosition()
+                ))
+                .toList();
+    }
+
+    private String getTeacherName(TeacherProfile teacher) {
+        if (teacher == null || teacher.getUser() == null) {
+            return "Неизвестно";
+        }
+        return teacher.getUser().getFullName();
+    }
+
      private LocalDateTime getNextDateTime(DayOfWeek targetDay, LocalTime targetTime, LocalDateTime now) {
         LocalDate today = now.toLocalDate();
         DayOfWeek currentDay = now.getDayOfWeek();

@@ -41,8 +41,9 @@ public class StudentService {
                 user.getRoles().stream()
                         .map(role -> role.getName().name())
                         .toList(),
-                studentProfile.getGroup().toString(),
-                studentProfile.getId()
+                studentProfile.getGroup().getName(),
+                studentProfile.getId(),
+                studentProfile.getGroup().getId()
         );
 
         return ResponseEntity.ok(dto);

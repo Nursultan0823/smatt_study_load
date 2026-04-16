@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.smatt_study_load.DTO.AddScheduleDTO;
+import com.example.smatt_study_load.DTO.GetDisciplineDTO;
 import com.example.smatt_study_load.DTO.Response;
-
+import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.TeacherScheduleDto;
+import com.example.smatt_study_load.DTO.TeacherShortDto;
 import com.example.smatt_study_load.DTO.UpcomingScheduleDto;
 import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.service.ScheduleService;
@@ -55,5 +57,20 @@ public ResponseEntity<String> updateSchedule(@PathVariable int id,
             @RequestParam(defaultValue = "5") int limit
     ) {
         return groupLeaderService.getUpcomingSchedulesByGroup(groupId, limit);
+    }
+
+    @GetMapping("/group/{groupId}")
+    public List<ScheduleDto> getGroupSchedule(@PathVariable int groupId) {
+        return groupLeaderService.getSchedulesByGroup(groupId);
+    }
+
+    @GetMapping("/disciplines")
+    public List<GetDisciplineDTO> getDisciplines() {
+        return groupLeaderService.getAllDisciplines();
+    }
+
+    @GetMapping("/teachers")
+    public List<TeacherShortDto> getTeachers() {
+        return groupLeaderService.getAllTeachers();
     }
 }
