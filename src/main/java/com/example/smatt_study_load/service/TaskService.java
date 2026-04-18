@@ -1,5 +1,6 @@
 package com.example.smatt_study_load.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -27,11 +28,12 @@ public class TaskService {
         private final DisciplineRepository disciplineRepository;
         private final TaskRepository taskRepository;
         private final TaskAttachmentRepository taskAttachmentRepository;
-    public void addTaskWithFile(String title,
-                            String description,
-                            int disciplineId,
-                            int createdById,
-                            MultipartFile file) {
+  public void addTaskWithFiles(String title,
+                             String description,
+                             int disciplineId,
+                             int createdById,
+                             String deadline,
+                             List<MultipartFile> files) {
     Discipline discipline = disciplineRepository.findById(disciplineId)
             .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
 
@@ -43,18 +45,27 @@ public class TaskService {
     task.setDescription(description);
     task.setDiscipline(discipline);
     task.setCreatedBy(teacher);
+    task.setCreatedAt(LocalDateTime.now());
 
-    if (file != null && !file.isEmpty()) {
-        try {
-            TaskAttachment attachment = new TaskAttachment();
-            attachment.setFileName(file.getOriginalFilename());
-            attachment.setContentType(file.getContentType());
-            attachment.setFileData(file.getBytes());
-            attachment.setTask(task);
+    if (deadline != null && !deadline.isBlank()) {
+        task.setDeadline(LocalDateTime.parse(deadline));
+    }
 
-            task.getAttachments().add(attachment);
-        } catch (Exception e) {
-            throw new RuntimeException("Ошибка при чтении файла");
+    if (files != null && !files.isEmpty()) {
+        for (MultipartFile file : files) {
+            if (file != null && !file.isEmpty()) {
+                try {
+                    TaskAttachment attachment = new TaskAttachment();
+                    attachment.setFileName(file.getOriginalFilename());
+                    attachment.setContentType(file.getContentType());
+                    attachment.setFileData(file.getBytes());
+                    attachment.setTask(task);
+
+                    task.getAttachments().add(attachment);
+                } catch (Exception e) {
+                    throw new RuntimeException("Ошибка при чтении файла");
+                }
+            }
         }
     }
 

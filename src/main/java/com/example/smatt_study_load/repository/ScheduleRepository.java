@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.example.smatt_study_load.models.Discipline;
+import com.example.smatt_study_load.models.GroupEntity;
 import com.example.smatt_study_load.models.Schedule;
+import com.example.smatt_study_load.models.TeacherProfile;
 
 public interface ScheduleRepository extends JpaRepository<Schedule,Integer> {
      List<Schedule> findByGroupId(int groupId);
@@ -60,4 +62,12 @@ public interface ScheduleRepository extends JpaRepository<Schedule,Integer> {
     );
     List<Schedule> findByGroupIdOrderByDayOfWeekAscStartTimeAsc(int groupId);
      List<Schedule> findByTeacherIdOrderByDayOfWeekAscStartTimeAsc(int teacherId);
+
+    boolean existsByGroupAndDisciplineAndTeacherAndDayOfWeekAndStartTime(
+            GroupEntity group,
+            Discipline discipline,
+            TeacherProfile teacher,
+            DayOfWeek dayOfWeek,
+            LocalTime startTime
+    );
 }

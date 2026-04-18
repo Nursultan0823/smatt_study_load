@@ -3,6 +3,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.example.smatt_study_load.enums.ReportStatus;
 
 @Data
 @Entity
@@ -16,15 +19,13 @@ public class Report {
     @Column(length = 3000)
     private String comment;
 
-    private String fileName;
-
-    @Lob
-    @Column(name = "file_data")
-    private byte[] fileData;
+   @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReportAttachment> attachments;
 
     private Integer grade;
 
-    private String status; // SUBMITTED, CHECKED, ACCEPTED
+    @Enumerated(EnumType.STRING)
+    private ReportStatus status;
 
     private LocalDateTime submittedAt;
 

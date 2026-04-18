@@ -34,9 +34,10 @@ public class TaskController {
             @RequestParam String description,
             @RequestParam int disciplineId,
             @RequestParam int createdById,
-            @RequestParam(required = false) MultipartFile file  
+            @RequestParam(required = false) String deadline,
+            @RequestParam(required = false) List<MultipartFile> files  
     ) {
-        taskService.addTaskWithFile(title, description, disciplineId, createdById, file);
+        taskService.addTaskWithFiles(title, description, disciplineId, createdById, deadline,files);
         return ResponseEntity.ok(new Response("Задача с файлом добавлена"));
     }
     @GetMapping("/{disciplineId}")
