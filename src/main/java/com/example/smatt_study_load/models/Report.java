@@ -21,14 +21,14 @@ public class Report {
 
    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReportAttachment> attachments;
-
+    
     private Integer grade;
 
     @Enumerated(EnumType.STRING)
     private ReportStatus status;
 
     private LocalDateTime submittedAt;
-
+    private String commentTeacher;
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;

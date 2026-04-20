@@ -12,7 +12,8 @@ public class UmmFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-
+    @Column(nullable = false)
+    private String fileType;
     @Column(nullable = false)
     private String fileName;
     @Lob

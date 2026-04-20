@@ -45,7 +45,7 @@ public class WebConfigs {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN","GROUP_LEADER")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/schedule/{teacherId}/schedules").hasAnyRole("TEACHER")
                         .requestMatchers("/schedule/{groupId}/student").hasAnyRole("STUDENT")

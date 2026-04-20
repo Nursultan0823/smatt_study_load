@@ -13,19 +13,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.smatt_study_load.DTO.CurrentStudentDTO;
+import com.example.smatt_study_load.DTO.DisciplineDto;
 import com.example.smatt_study_load.DTO.GrageDTO;
 import com.example.smatt_study_load.DTO.ReportAttachmentDto;
 import com.example.smatt_study_load.DTO.ReportDTO;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.UmmDTO;
 import com.example.smatt_study_load.enums.ReportStatus;
 import com.example.smatt_study_load.models.Report;
 import com.example.smatt_study_load.models.ReportAttachment;
+import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.ReporAttachmentRepository;
 import com.example.smatt_study_load.repository.ReportRepository;
+import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.TaskRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
@@ -44,6 +48,7 @@ public class StudentService {
         private final TaskRepository taskRepository;
         private final ReporAttachmentRepository reporAttachmentRepository;
         private final TeacherProfileRepository teacherProfileRepository;
+        private final ScheduleRepository scheduleRepository;
       public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
             return ResponseEntity.status(401).body(new Response("Пользователь не авторизован"));
@@ -211,16 +216,16 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId)
             })
             .toList();
 }
-public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
-    ReportAttachment attachment = reporAttachmentRepository.findById(attachmentId)
-            .orElseThrow(() -> new RuntimeException("Файл не найден"));
+    public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
+        ReportAttachment attachment = reporAttachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Файл не найден"));
 
-    return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(attachment.getContentType()))
-            .header(HttpHeaders.CONTENT_DISPOSITION,
-                    "attachment; filename=\"" + attachment.getFileName() + "\"")
-            .body(attachment.getFileData());
-    }   
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(attachment.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + attachment.getFileName() + "\"")
+                .body(attachment.getFileData());
+        }   
     public void updateGrate(GrageDTO grageDTO){
            Report report =reportRepository.findById(grageDTO.getReportId()).orElseThrow(() -> new RuntimeException("Отчет не найден"));
            TeacherProfile teacherProfile= teacherProfileRepository.findById(grageDTO.getTeacherId()).orElseThrow(() -> new RuntimeException("Отчет не найден"));
@@ -229,4 +234,56 @@ public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
            report.setStatus(ReportStatus.ACCEPTED);
            reportRepository.save(report);
     }
+    public void checkedGrade(int id,
+                        String comment,
+                        List<MultipartFile> files){
+        Report report =reportRepository.findById(id).orElseThrow(() -> new RuntimeException("Отчет не найден"));
+      
+        if(comment !=null){
+            report.setCommentTeacher(comment);
+        }
+        report.setStatus(ReportStatus.CHECKED);
+         if (files != null && !files.isEmpty()) { 
+            for (MultipartFile file : files) {  
+            if (file != null && !file.isEmpty()) {
+        try {
+            ReportAttachment reportAttachment=new ReportAttachment();
+            reportAttachment.setFileName(file.getOriginalFilename());
+            reportAttachment.setContentType(file.getContentType());
+            reportAttachment.setFileData(file.getBytes());
+            reportAttachment.setReport(report);
+                report.getAttachments().add(reportAttachment);
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка при чтении файла");
+        }
+    }
+    }
+}
+    reportRepository.save(report);
+}
+@Transactional(readOnly = true)
+public List<DisciplineDto> getDisciplinesByGroupId(int groupId) {
+    return scheduleRepository.findByGroupId(groupId).stream()
+            .map(Schedule::getDiscipline)
+            .distinct()
+            .map(discipline -> {
+                DisciplineDto dto = new DisciplineDto();
+                dto.setId(discipline.getId());
+                dto.setName(discipline.getName());
+                dto.setDescription(discipline.getDescription());
+                dto.setUrlList(discipline.getUrlList());
+                dto.setUmmfiles(
+                   discipline.getUmmFiles().stream().map(
+                    att ->{
+                        UmmDTO ummDTO= new UmmDTO();
+                        ummDTO.setFileName(att.getFileName());
+                        ummDTO.setId(att.getId());
+                        ummDTO.setFileType(att.getFileType());
+                        return ummDTO;
+                    }).toList() 
+                );
+                return dto;
+            })
+            .toList();
+}
 }

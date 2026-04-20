@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.smatt_study_load.DTO.DisciplineDto;
 import com.example.smatt_study_load.DTO.ReportDTO;
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.models.Report;
@@ -12,6 +13,7 @@ import com.example.smatt_study_load.models.ReportAttachment;
 import com.example.smatt_study_load.repository.ReporAttachmentRepository;
 import com.example.smatt_study_load.repository.ReportRepository;
 import com.example.smatt_study_load.service.StudentService;
+import com.example.smatt_study_load.service.TeacherService;
 
 import lombok.AllArgsConstructor;
 
@@ -36,6 +38,7 @@ public class StudentController {
    private final StudentService studentService;
    private final ReportRepository reportRepository;
     private final ReporAttachmentRepository reporAttachmentRepository;
+    private final TeacherService teacherService;
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentStudent (Authentication authentication) {
         return studentService.getCurrentUser(authentication);
@@ -78,4 +81,12 @@ public ResponseEntity<byte[]> downloadAttachment(@PathVariable int attachmentId)
         reporAttachmentRepository.delete(report);
         return ResponseEntity.ok(new Response( "Файл успешно удален"));
     }
+    @GetMapping("/umm/{attachmentId}/download")
+    public ResponseEntity<byte[]> downloadAUmm(@PathVariable int attachmentId) {
+        return teacherService.downloadAttachment(attachmentId);
+    }
+    @GetMapping("/group/{groupId}/disciplines")
+public List<DisciplineDto> getDisciplinesByGroupId(@PathVariable int groupId) {
+    return studentService.getDisciplinesByGroupId(groupId);
+}
 }

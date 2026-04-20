@@ -30,6 +30,11 @@ public class Discipline {
     @OneToMany(mappedBy = "discipline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "discipline_urls", joinColumns = @JoinColumn(name = "discipline_id"))
+    @Column(name = "url")
+    private List<String> urlList;
+    
     @OneToMany(mappedBy = "discipline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UmmFile> ummFiles = new ArrayList<>();
 }
