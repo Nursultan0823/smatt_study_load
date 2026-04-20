@@ -226,6 +226,7 @@ public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
            TeacherProfile teacherProfile= teacherProfileRepository.findById(grageDTO.getTeacherId()).orElseThrow(() -> new RuntimeException("Отчет не найден"));
            report.setSubmittedByUser(teacherProfile.getUser());
            report.setGrade(grageDTO.getGrade());
+           report.setStatus(ReportStatus.ACCEPTED);
            reportRepository.save(report);
     }
 }
