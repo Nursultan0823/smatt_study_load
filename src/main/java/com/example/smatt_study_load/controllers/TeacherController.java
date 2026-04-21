@@ -98,11 +98,11 @@ public ResponseEntity<byte[]> downloadAttachment(@PathVariable int attachmentId)
     teacherService.removeUrlFromDiscipline(disciplineId, url);
     return ResponseEntity.ok("URL удален");
     }
-    @DeleteMapping("/{disciplineId}/url")
+    @DeleteMapping("/umm/{ummId}")
     public ResponseEntity<?> removeUmm(@PathVariable int ummId) {
         UmmFile ummFile = ummFileRepository.findById(ummId).orElseThrow(() -> new RuntimeException("Файл не найден"));
         ummFileRepository.delete(ummFile);
-        return ResponseEntity.ok("URL удален");
+        return ResponseEntity.ok("UMM удален");
     }
     @GetMapping("/umm/{attachmentId}/download")
     public ResponseEntity<byte[]> downloadAUmm(@PathVariable int attachmentId) {
