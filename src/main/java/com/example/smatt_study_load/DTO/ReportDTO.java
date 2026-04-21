@@ -13,6 +13,7 @@ import lombok.Data;
 public class ReportDTO {
      private int id;
     private String comment;
+    private String commentTeacher;
     private Integer grade;
     private ReportStatus status;
     private LocalDateTime submittedAt;

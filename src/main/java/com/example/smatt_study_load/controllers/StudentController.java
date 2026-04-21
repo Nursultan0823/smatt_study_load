@@ -65,6 +65,10 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(@PathVariable int taskId,
                                                       @PathVariable int studentId) {
     return studentService.getReportsByTaskIdAndStudentId(taskId, studentId);
 }
+    @GetMapping("/{studentId}/reports")
+public List<ReportDTO> getAllReportsByStudent(@PathVariable int studentId) {
+    return studentService.getAllReportsByStudent(studentId);
+}
 @GetMapping("/repost/attachment/{attachmentId}/download")
 public ResponseEntity<byte[]> downloadAttachment(@PathVariable int attachmentId) {
     return studentService.downloadAttachment(attachmentId);

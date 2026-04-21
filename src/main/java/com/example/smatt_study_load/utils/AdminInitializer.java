@@ -1,8 +1,11 @@
 package com.example.smatt_study_load.utils;
 
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.boot.CommandLineRunner;
@@ -18,6 +21,7 @@ import com.example.smatt_study_load.models.Roles;
 import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.TeacherProfile;
+import com.example.smatt_study_load.models.UmmMaterial;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
@@ -25,6 +29,7 @@ import com.example.smatt_study_load.repository.RoleRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
+import com.example.smatt_study_load.repository.UmmMaterialRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 
 @Configuration
@@ -38,7 +43,8 @@ public class AdminInitializer {
                                       StudentProfileRepository studentProfileRepository,
                                       GroupEntityRepository groupRepository,
                                       DisciplineRepository disciplineRepository,
-                                      ScheduleRepository scheduleRepository) {
+                                      ScheduleRepository scheduleRepository,
+                                      UmmMaterialRepository ummMaterialRepository) {
         return args -> {
 
             initRoles(roleRepository);
@@ -48,6 +54,7 @@ public class AdminInitializer {
             initStudents(userRepository, passwordEncoder, roleRepository, studentProfileRepository, groupRepository);
             initDisciplines(disciplineRepository);
             initSchedules(groupRepository, disciplineRepository, teacherProfileRepository, scheduleRepository);
+            initUmmMaterials(disciplineRepository, teacherProfileRepository, ummMaterialRepository);
 
             System.out.println("Инициализация данных завершена");
         };
@@ -306,5 +313,194 @@ public class AdminInitializer {
             scheduleRepository.save(s2);
             System.out.println("Расписание 2 создано");
         }
+    }
+
+    private void initUmmMaterials(DisciplineRepository disciplineRepository,
+                                  TeacherProfileRepository teacherProfileRepository,
+                                  UmmMaterialRepository ummMaterialRepository) {
+
+        Discipline programming = disciplineRepository.findByName("Программирование")
+                .orElseThrow(() -> new RuntimeException("Дисциплина Программирование не найдена"));
+
+        Discipline databases = disciplineRepository.findByName("Базы данных")
+                .orElseThrow(() -> new RuntimeException("Дисциплина Базы данных не найдена"));
+
+        TeacherProfile teacher1 = teacherProfileRepository.findByUserEmail("teacher1@example.com")
+                .orElseThrow(() -> new RuntimeException("Преподаватель teacher1@example.com не найден"));
+
+        TeacherProfile teacher2 = teacherProfileRepository.findByUserEmail("teacher2@example.com")
+                .orElseThrow(() -> new RuntimeException("Преподаватель teacher2@example.com не найден"));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // --- Программирование (teacher1) ---
+        createUmmIfNotExists(
+                "Лекция 1. Введение в объектно-ориентированное программирование",
+                "Базовые понятия ООП: классы, объекты, инкапсуляция, наследование, полиморфизм. "
+                        + "Рассматриваются отличия процедурного и объектно-ориентированного подходов, "
+                        + "а также практические примеры на Java.",
+                programming,
+                teacher1,
+                List.of(
+                        "https://docs.oracle.com/javase/tutorial/java/concepts/",
+                        "https://ru.wikipedia.org/wiki/Объектно-ориентированное_программирование"
+                ),
+                now.minusDays(30),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Лекция 2. Принципы SOLID",
+                "Пять принципов проектирования, позволяющих создавать поддерживаемый и расширяемый код: "
+                        + "SRP, OCP, LSP, ISP, DIP. Каждый принцип разобран на примерах.",
+                programming,
+                teacher1,
+                List.of(
+                        "https://habr.com/ru/articles/688530/",
+                        "https://en.wikipedia.org/wiki/SOLID"
+                ),
+                now.minusDays(25),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Методичка по коллекциям Java",
+                "Обзор основных интерфейсов и реализаций java.util: List, Set, Map, Queue. "
+                        + "Таблицы сравнения реализаций по сложности операций, рекомендации по выбору.",
+                programming,
+                teacher1,
+                List.of(
+                        "https://docs.oracle.com/javase/tutorial/collections/",
+                        "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/package-summary.html"
+                ),
+                now.minusDays(20),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Практика: Шаблоны проектирования GoF",
+                "Классические паттерны: порождающие, структурные, поведенческие. "
+                        + "Для каждого шаблона приведены мотивация, структура и пример применения.",
+                programming,
+                teacher1,
+                List.of(
+                        "https://refactoring.guru/ru/design-patterns",
+                        "https://ru.wikipedia.org/wiki/Design_Patterns"
+                ),
+                now.minusDays(15),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Лекция: Исключения и их обработка",
+                "Иерархия Throwable, checked и unchecked исключения, конструкция try-with-resources, "
+                        + "рекомендации по проектированию пользовательских исключений.",
+                programming,
+                teacher1,
+                List.of(
+                        "https://docs.oracle.com/javase/tutorial/essential/exceptions/"
+                ),
+                now.minusDays(10),
+                ummMaterialRepository
+        );
+
+        // --- Базы данных (teacher2) ---
+        createUmmIfNotExists(
+                "Лекция 1. Введение в реляционные СУБД",
+                "Понятие реляционной модели данных, основные объекты БД, архитектура клиент-сервер. "
+                        + "Обзор популярных СУБД: PostgreSQL, MySQL, Oracle, MS SQL Server.",
+                databases,
+                teacher2,
+                List.of(
+                        "https://www.postgresql.org/docs/current/tutorial.html",
+                        "https://ru.wikipedia.org/wiki/Реляционная_СУБД"
+                ),
+                now.minusDays(28),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Методичка по SQL: выборка данных (SELECT)",
+                "Синтаксис SELECT, условия WHERE, соединения JOIN, группировки GROUP BY/HAVING, "
+                        + "подзапросы. Разобраны типичные задачи с решениями.",
+                databases,
+                teacher2,
+                List.of(
+                        "https://www.postgresql.org/docs/current/sql-select.html",
+                        "https://www.w3schools.com/sql/"
+                ),
+                now.minusDays(22),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Лекция: Нормализация баз данных",
+                "Нормальные формы: 1НФ, 2НФ, 3НФ, BCNF. Аномалии избыточности и способы их устранения. "
+                        + "Практические рекомендации при проектировании схемы БД.",
+                databases,
+                teacher2,
+                List.of(
+                        "https://ru.wikipedia.org/wiki/Нормальная_форма",
+                        "https://habr.com/ru/articles/254773/"
+                ),
+                now.minusDays(18),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Практика: Индексы и оптимизация запросов",
+                "Типы индексов (B-tree, Hash, GIN), правила использования EXPLAIN / EXPLAIN ANALYZE, "
+                        + "анти-паттерны запросов и способы их оптимизации.",
+                databases,
+                teacher2,
+                List.of(
+                        "https://www.postgresql.org/docs/current/indexes.html",
+                        "https://use-the-index-luke.com/"
+                ),
+                now.minusDays(12),
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Лекция: Транзакции и свойства ACID",
+                "Понятие транзакции, свойства ACID, уровни изоляции (READ COMMITTED, REPEATABLE READ, "
+                        + "SERIALIZABLE), типичные аномалии: грязное чтение, неповторяющееся чтение, фантомы.",
+                databases,
+                teacher2,
+                List.of(
+                        "https://www.postgresql.org/docs/current/transaction-iso.html",
+                        "https://ru.wikipedia.org/wiki/ACID"
+                ),
+                now.minusDays(5),
+                ummMaterialRepository
+        );
+    }
+
+    private void createUmmIfNotExists(String title,
+                                      String description,
+                                      Discipline discipline,
+                                      TeacherProfile author,
+                                      List<String> urls,
+                                      LocalDateTime createdAt,
+                                      UmmMaterialRepository ummMaterialRepository) {
+        boolean alreadyExists = ummMaterialRepository.findAll().stream()
+                .anyMatch(m -> title.equals(m.getTitle())
+                        && m.getDiscipline() != null
+                        && m.getDiscipline().getId() == discipline.getId());
+
+        if (alreadyExists) {
+            return;
+        }
+
+        UmmMaterial material = new UmmMaterial();
+        material.setTitle(title);
+        material.setDescription(description);
+        material.setDiscipline(discipline);
+        material.setAuthor(author);
+        material.setCreatedAt(createdAt);
+        material.setUpdatedAt(createdAt);
+        material.setUrlList(new ArrayList<>(urls));
+        ummMaterialRepository.save(material);
+        System.out.println("УММ создан: " + title);
     }
 }

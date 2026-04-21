@@ -151,6 +151,43 @@ public List<ReportDTO> getReportsByTaskId(int taskId) {
                 ReportDTO dto = new ReportDTO();
                 dto.setId(report.getId());
                 dto.setComment(report.getComment());
+                dto.setCommentTeacher(report.getCommentTeacher());
+                dto.setGrade(report.getGrade());
+                dto.setStatus(report.getStatus());
+                dto.setSubmittedAt(report.getSubmittedAt());
+                dto.setTaskId(report.getTask().getId());
+                dto.setTaskTitle(report.getTask().getTitle());
+                dto.setStudentId(report.getStudent().getId());
+                dto.setStudentName(report.getStudent().getUser().getFullName());
+
+                if (report.getSubmittedByUser() != null) {
+                    dto.setSubmittedByUserName(report.getSubmittedByUser().getFullName());
+                }
+
+                dto.setAttachments(
+                        report.getAttachments().stream()
+                                .map(att -> {
+                                    ReportAttachmentDto attachmentDto = new ReportAttachmentDto();
+                                    attachmentDto.setId(att.getId());
+                                    attachmentDto.setFileName(att.getFileName());
+                                    attachmentDto.setContentType(att.getContentType());
+                                    return attachmentDto;
+                                })
+                                .toList()
+                );
+
+                return dto;
+            })
+            .toList();
+}
+   @Transactional(readOnly = true)
+public List<ReportDTO> getAllReportsByStudent(int studentId) {
+    return reportRepository.findByStudentId(studentId).stream()
+            .map(report -> {
+                ReportDTO dto = new ReportDTO();
+                dto.setId(report.getId());
+                dto.setComment(report.getComment());
+                dto.setCommentTeacher(report.getCommentTeacher());
                 dto.setGrade(report.getGrade());
                 dto.setStatus(report.getStatus());
                 dto.setSubmittedAt(report.getSubmittedAt());
@@ -186,6 +223,7 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId)
                 ReportDTO dto = new ReportDTO();
                 dto.setId(report.getId());
                 dto.setComment(report.getComment());
+                dto.setCommentTeacher(report.getCommentTeacher());
                 dto.setGrade(report.getGrade());
                 dto.setStatus(report.getStatus());
                 dto.setSubmittedAt(report.getSubmittedAt());

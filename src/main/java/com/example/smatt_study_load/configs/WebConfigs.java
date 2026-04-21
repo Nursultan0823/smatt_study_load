@@ -54,6 +54,10 @@ public class WebConfigs {
                         .requestMatchers(HttpMethod.POST, "/task/add").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/task/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/task/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/umm/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/umm/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/umm/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/umm/**").hasAnyRole("TEACHER", "ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
