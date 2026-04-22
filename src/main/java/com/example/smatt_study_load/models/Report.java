@@ -1,8 +1,10 @@
 package com.example.smatt_study_load.models;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.smatt_study_load.enums.ReportStatus;
@@ -19,9 +21,9 @@ public class Report {
     @Column(length = 3000)
     private String comment;
 
-   @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReportAttachment> attachments;
-    
+    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReportAttachment> attachments = new ArrayList<>();
+
     private Integer grade;
 
     @Enumerated(EnumType.STRING)
@@ -40,5 +42,5 @@ public class Report {
     @ManyToOne
     @JoinColumn(name = "submitted_by_user_id")
     private User submittedByUser;
-    
+
 }
