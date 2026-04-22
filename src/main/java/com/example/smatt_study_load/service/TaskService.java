@@ -80,7 +80,10 @@ public List<TaskDto> getTasksByDiscipline(int disciplineId) {
                 dto.setTitle(task.getTitle());
                 dto.setDescription(task.getDescription());
                 dto.setDisciplineName(task.getDiscipline().getName());
+                dto.setDisciplineId(task.getDiscipline().getId());
                 dto.setTeacherName(task.getCreatedBy().getUser().getFullName());
+                dto.setCreatedAt(task.getCreatedAt());
+                dto.setDeadline(task.getDeadline());
 
                 dto.setAttachments(
                         task.getAttachments().stream()
@@ -112,6 +115,7 @@ public void updateTask(int taskId,
                        String title,
                        String description,
                        Integer disciplineId,
+                       String deadline,
                        List<MultipartFile> files) {
     Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Задача не найдена"));
@@ -128,6 +132,14 @@ public void updateTask(int taskId,
         Discipline discipline = disciplineRepository.findById(disciplineId)
                 .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
         task.setDiscipline(discipline);
+    }
+
+    if (deadline != null) {
+        if (deadline.isBlank()) {
+            task.setDeadline(null);
+        } else {
+            task.setDeadline(LocalDateTime.parse(deadline));
+        }
     }
 
     if (files != null && !files.isEmpty()) {

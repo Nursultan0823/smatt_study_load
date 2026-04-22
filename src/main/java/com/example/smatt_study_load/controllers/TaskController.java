@@ -54,9 +54,10 @@ public ResponseEntity<?> updateTask(
         @RequestParam(required = false) String title,
         @RequestParam(required = false) String description,
         @RequestParam(required = false) Integer disciplineId,
+        @RequestParam(required = false) String deadline,
         @RequestParam(required = false) List<MultipartFile> files
 ) {
-    taskService.updateTask(taskId, title, description, disciplineId, files);
+    taskService.updateTask(taskId, title, description, disciplineId, deadline, files);
     return ResponseEntity.ok(new Response("Задача обновлена"));
 }
 @DeleteMapping("/attachments/{attachmentId}")
