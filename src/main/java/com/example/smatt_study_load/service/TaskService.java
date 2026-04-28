@@ -11,11 +11,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import com.example.smatt_study_load.DTO.TaskAttachmentDto;
 import com.example.smatt_study_load.DTO.TaskDto;
+import com.example.smatt_study_load.enums.AnnouncementType;
+import com.example.smatt_study_load.models.Announcement;
 import com.example.smatt_study_load.models.Discipline;
+import com.example.smatt_study_load.models.GroupEntity;
 import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.models.TaskAttachment;
 import com.example.smatt_study_load.models.TeacherProfile;
+import com.example.smatt_study_load.repository.AnnouncementRepository;
 import com.example.smatt_study_load.repository.DisciplineRepository;
+import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.TaskAttachmentRepository;
 import com.example.smatt_study_load.repository.TaskRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
@@ -28,17 +33,30 @@ public class TaskService {
         private final DisciplineRepository disciplineRepository;
         private final TaskRepository taskRepository;
         private final TaskAttachmentRepository taskAttachmentRepository;
-  public void addTaskWithFiles(String title,
+        private final ScheduleRepository scheduleRepository;
+        private final AnnouncementRepository announcementRepository;
+  @Transactional
+public void addTaskWithFiles(String title,
                              String description,
                              int disciplineId,
                              int createdById,
                              String deadline,
                              List<MultipartFile> files) {
+
     Discipline discipline = disciplineRepository.findById(disciplineId)
             .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
 
     TeacherProfile teacher = teacherProfileRepository.findById(createdById)
             .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
+
+    List<GroupEntity> groups = scheduleRepository.findGroupsByDisciplineAndTeacher(
+            disciplineId,
+            createdById
+    );
+
+    if (groups.isEmpty()) {
+        throw new RuntimeException("Для этой дисциплины и преподавателя не найдены группы в расписании");
+    }
 
     Task task = new Task();
     task.setTitle(title);
@@ -69,7 +87,18 @@ public class TaskService {
         }
     }
 
-    taskRepository.save(task);
+    Task savedTask = taskRepository.save(task);
+
+    Announcement announcement = new Announcement();
+    announcement.setTitle("Новое задание");
+    announcement.setContent("Преподаватель добавил новое задание: " + savedTask.getTitle());
+    announcement.setDiscipline(discipline);
+    announcement.setTeacher(teacher);
+    announcement.setCreatedAt(LocalDateTime.now());
+    announcement.setGroups(groups);
+    announcement.setTargetId(savedTask.getId());
+    announcement.setType(AnnouncementType.TASK_CREATED);
+    announcementRepository.save(announcement);
 }
 @Transactional(readOnly = true)
 public List<TaskDto> getTasksByDiscipline(int disciplineId) {

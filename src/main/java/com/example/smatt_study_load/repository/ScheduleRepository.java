@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
@@ -70,4 +71,14 @@ public interface ScheduleRepository extends JpaRepository<Schedule,Integer> {
             DayOfWeek dayOfWeek,
             LocalTime startTime
     );
+    @Query("""
+       SELECT DISTINCT s.group
+       FROM Schedule s
+       WHERE s.discipline.id = :disciplineId
+       AND s.teacher.id = :teacherId
+       """)
+List<GroupEntity> findGroupsByDisciplineAndTeacher(
+        @Param("disciplineId") int disciplineId,
+        @Param("teacherId") int teacherId
+);
 }

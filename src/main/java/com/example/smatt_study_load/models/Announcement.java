@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.example.smatt_study_load.enums.AnnouncementType;
 
 @Data
 @Entity
@@ -22,7 +26,12 @@ public class Announcement {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AnnouncementType type;
 
+    @Column(nullable = false)
+    private int targetId;
     @ManyToOne
     @JoinColumn(name = "discipline_id", nullable = false)
     private Discipline discipline;
@@ -30,4 +39,12 @@ public class Announcement {
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile teacher;
+       @ManyToOne
+   @ManyToMany
+    @JoinTable(
+            name = "announcement_groups",
+            joinColumns = @JoinColumn(name = "announcement_id"),
+            inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private List<GroupEntity> groups = new ArrayList<>();
 }
