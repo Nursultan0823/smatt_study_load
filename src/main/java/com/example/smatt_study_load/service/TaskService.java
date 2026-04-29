@@ -15,6 +15,7 @@ import com.example.smatt_study_load.enums.AnnouncementType;
 import com.example.smatt_study_load.models.Announcement;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
+import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.models.TaskAttachment;
 import com.example.smatt_study_load.models.TeacherProfile;
@@ -35,6 +36,7 @@ public class TaskService {
         private final TaskAttachmentRepository taskAttachmentRepository;
         private final ScheduleRepository scheduleRepository;
         private final AnnouncementRepository announcementRepository;
+        private final EmailService emailService;
   @Transactional
 public void addTaskWithFiles(String title,
                              String description,
@@ -99,6 +101,20 @@ public void addTaskWithFiles(String title,
     announcement.setTargetId(savedTask.getId());
     announcement.setType(AnnouncementType.TASK_CREATED);
     announcementRepository.save(announcement);
+    for (GroupEntity group : groups) {
+    for (StudentProfile student : group.getStudents()) {
+        String email = student.getUser().getEmail();
+
+        if (email != null && !email.isBlank()) {
+            emailService.sendSimpleEmail(
+                    email,
+                    "Новое задание",
+                    "По дисциплине " + discipline.getName()
+                            + " добавлено новое задание: " + savedTask.getTitle()
+            );
+        }
+    }
+}
 }
 @Transactional(readOnly = true)
 public List<TaskDto> getTasksByDiscipline(int disciplineId) {
