@@ -1,5 +1,6 @@
 package com.example.smatt_study_load.DTO;
 
+import com.example.smatt_study_load.enums.AnnouncementType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -16,6 +17,9 @@ public class AnnouncementDto {
 
     private String disciplineName;
     private String teacherName;
+
+    private AnnouncementType type;
+    private int targetId;
 
     private boolean seen;
 }

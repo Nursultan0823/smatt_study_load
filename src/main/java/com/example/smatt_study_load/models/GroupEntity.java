@@ -15,13 +15,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "student_groups")
+@Table(name = "groups")
+@ToString(exclude = { "students", "schedules" })
 public class GroupEntity {
-       @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
@@ -32,7 +36,6 @@ public class GroupEntity {
 
     private String specialty;
 
-    
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudentProfile> students = new ArrayList<>();
     @JsonIgnore

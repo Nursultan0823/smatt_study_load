@@ -39,8 +39,7 @@ public class Announcement {
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile teacher;
-       @ManyToOne
-   @ManyToMany
+    @ManyToMany
     @JoinTable(
             name = "announcement_groups",
             joinColumns = @JoinColumn(name = "announcement_id"),

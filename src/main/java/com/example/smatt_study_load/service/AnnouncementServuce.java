@@ -39,6 +39,8 @@ public class AnnouncementServuce {
                         announcement.getCreatedAt(),
                         announcement.getDiscipline().getName(),
                         announcement.getTeacher().getUser().getFullName(),
+                        announcement.getType(),
+                        announcement.getTargetId(),
                         seen
                 );
             })

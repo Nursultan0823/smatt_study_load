@@ -17,45 +17,44 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.HashSet;
 import java.util.Set;
 
-
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
+@ToString(exclude = { "roles", "studentProfile", "teacherProfile" })
 public class User {
-   @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private int id;
 
-    @Column(nullable = false)
-    private String fullName;
+        @Column(nullable = false)
+        private String fullName;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+        @Column(nullable = false, unique = true)
+        private String email;
 
-    @JsonIgnore
-    @Column(nullable = false)
-    private String password;
-   
-     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserStatus status;
-   @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Roles> roles = new HashSet<>();
-     @Column(nullable = false)
-    private boolean enabled;
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private StudentProfile studentProfile;
-    
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private TeacherProfile teacherProfile;
+        @JsonIgnore
+        @Column(nullable = false)
+        private String password;
+
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = false)
+        private UserStatus status;
+        @ManyToMany(fetch = FetchType.EAGER)
+        @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+        private Set<Roles> roles = new HashSet<>();
+        @Column(nullable = false)
+        private boolean enabled;
+        @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+        private StudentProfile studentProfile;
+
+        @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+        private TeacherProfile teacherProfile;
 }
