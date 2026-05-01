@@ -1,7 +1,8 @@
 package com.example.smatt_study_load.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,7 +10,8 @@ import java.util.List;
 
 import com.example.smatt_study_load.enums.AnnouncementType;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "announcements")
 public class Announcement {
@@ -39,8 +41,7 @@ public class Announcement {
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private TeacherProfile teacher;
-       @ManyToOne
-   @ManyToMany
+    @ManyToMany
     @JoinTable(
             name = "announcement_groups",
             joinColumns = @JoinColumn(name = "announcement_id"),
