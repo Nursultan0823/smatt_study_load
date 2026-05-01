@@ -21,5 +21,7 @@ public class AnnouncementDto {
     private AnnouncementType type;
     private int targetId;
 
+    private String meetingUrl;
+
     private boolean seen;
 }

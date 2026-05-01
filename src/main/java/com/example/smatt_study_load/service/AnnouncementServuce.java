@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.smatt_study_load.DTO.AnnouncementDto;
+import com.example.smatt_study_load.enums.AnnouncementType;
 import com.example.smatt_study_load.models.Announcement;
 import com.example.smatt_study_load.models.AnnouncementReadStatus;
 import com.example.smatt_study_load.models.User;
@@ -25,26 +26,60 @@ public class AnnouncementServuce {
     public List<AnnouncementDto> getAnnouncementsForGroup(int groupId, int userId) {
     return announcementRepository.findByGroupsIdOrderByCreatedAtDesc(groupId)
             .stream()
-            .map(announcement -> {
-                boolean seen = announcementReadStatusRepository
-                        .existsByAnnouncementIdAndUserIdAndSeenTrue(
-                                announcement.getId(),
-                                userId
-                        );
-
-                return new AnnouncementDto(
-                        announcement.getId(),
-                        announcement.getTitle(),
-                        announcement.getContent(),
-                        announcement.getCreatedAt(),
-                        announcement.getDiscipline().getName(),
-                        announcement.getTeacher().getUser().getFullName(),
-                        announcement.getType(),
-                        announcement.getTargetId(),
-                        seen
-                );
-            })
+            .map(announcement -> toDto(announcement, userId))
+            .filter(announcement -> !announcement.isSeen())
             .toList();
+}
+
+public List<AnnouncementDto> getLessonRemindersForTeacher(int teacherId, int userId) {
+    return announcementRepository
+            .findByTeacherIdAndTypeOrderByCreatedAtDesc(
+                    teacherId,
+                    AnnouncementType.LESSON_STARTING_SOON
+            )
+            .stream()
+            .map(announcement -> toDto(announcement, userId))
+            .filter(announcement -> !announcement.isSeen())
+            .toList();
+}
+
+public List<AnnouncementDto> getAnnouncementHistoryForGroup(int groupId, int userId) {
+    return announcementRepository.findByGroupsIdOrderByCreatedAtDesc(groupId)
+            .stream()
+            .map(announcement -> toDto(announcement, userId))
+            .toList();
+}
+
+public List<AnnouncementDto> getLessonReminderHistoryForTeacher(int teacherId, int userId) {
+    return announcementRepository
+            .findByTeacherIdAndTypeOrderByCreatedAtDesc(
+                    teacherId,
+                    AnnouncementType.LESSON_STARTING_SOON
+            )
+            .stream()
+            .map(announcement -> toDto(announcement, userId))
+            .toList();
+}
+
+private AnnouncementDto toDto(Announcement announcement, int userId) {
+    boolean seen = announcementReadStatusRepository
+            .existsByAnnouncementIdAndUserIdAndSeenTrue(
+                    announcement.getId(),
+                    userId
+            );
+
+    return new AnnouncementDto(
+            announcement.getId(),
+            announcement.getTitle(),
+            announcement.getContent(),
+            announcement.getCreatedAt(),
+            announcement.getDiscipline().getName(),
+            announcement.getTeacher().getUser().getFullName(),
+            announcement.getType(),
+            announcement.getTargetId(),
+            announcement.getMeetingUrl(),
+            seen
+    );
 }
 @Transactional
 public void markAnnouncementAsSeen(int announcementId, int userId) {

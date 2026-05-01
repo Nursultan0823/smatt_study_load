@@ -4,6 +4,7 @@ import com.example.smatt_study_load.enums.AnnouncementType;
 import com.example.smatt_study_load.models.Announcement;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Integer> {
@@ -11,4 +12,14 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Inte
     List<Announcement> findByGroupsIdOrderByCreatedAtDesc(int groupId);
     boolean existsByTypeAndTargetId(AnnouncementType type, int targetId);
 
+    boolean existsByTypeAndTargetIdAndCreatedAtAfter(
+            AnnouncementType type,
+            int targetId,
+            LocalDateTime createdAt
+    );
+
+    List<Announcement> findByTeacherIdAndTypeOrderByCreatedAtDesc(
+            int teacherId,
+            AnnouncementType type
+    );
 }

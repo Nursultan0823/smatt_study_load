@@ -28,6 +28,36 @@ public ResponseEntity<List<AnnouncementDto>> getAnnouncementsForGroup(
     );
 }
 
+@GetMapping("/teacher/{teacherId}/user/{userId}/lesson-reminders")
+public ResponseEntity<List<AnnouncementDto>> getLessonRemindersForTeacher(
+        @PathVariable int teacherId,
+        @PathVariable int userId
+) {
+    return ResponseEntity.ok(
+            announcementServuce.getLessonRemindersForTeacher(teacherId, userId)
+    );
+}
+
+@GetMapping("/group/{groupId}/user/{userId}/history")
+public ResponseEntity<List<AnnouncementDto>> getAnnouncementHistoryForGroup(
+        @PathVariable int groupId,
+        @PathVariable int userId
+) {
+    return ResponseEntity.ok(
+            announcementServuce.getAnnouncementHistoryForGroup(groupId, userId)
+    );
+}
+
+@GetMapping("/teacher/{teacherId}/user/{userId}/lesson-reminders/history")
+public ResponseEntity<List<AnnouncementDto>> getLessonReminderHistoryForTeacher(
+        @PathVariable int teacherId,
+        @PathVariable int userId
+) {
+    return ResponseEntity.ok(
+            announcementServuce.getLessonReminderHistoryForTeacher(teacherId, userId)
+    );
+}
+
 @PostMapping("/{announcementId}/seen/user/{userId}")
 public ResponseEntity<?> markAsSeen(
         @PathVariable int announcementId,

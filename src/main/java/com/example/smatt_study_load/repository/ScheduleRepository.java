@@ -81,4 +81,12 @@ List<GroupEntity> findGroupsByDisciplineAndTeacher(
         @Param("disciplineId") int disciplineId,
         @Param("teacherId") int teacherId
 );
+
+    @Query("""
+        SELECT s FROM Schedule s
+        WHERE s.dayOfWeek = :dayOfWeek
+          AND s.url IS NOT NULL
+          AND TRIM(s.url) <> ''
+    """)
+    List<Schedule> findOnlineByDayOfWeek(@Param("dayOfWeek") DayOfWeek dayOfWeek);
 }

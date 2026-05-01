@@ -32,6 +32,10 @@ public class Announcement {
 
     @Column(nullable = false)
     private int targetId;
+
+    @Column(length = 1000)
+    private String meetingUrl;
+
     @ManyToOne
     @JoinColumn(name = "discipline_id", nullable = false)
     private Discipline discipline;
