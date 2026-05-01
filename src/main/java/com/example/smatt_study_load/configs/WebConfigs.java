@@ -50,6 +50,7 @@ public class WebConfigs {
                         .requestMatchers("/schedule/{teacherId}/schedules").hasAnyRole("TEACHER")
                         .requestMatchers("/schedule/{groupId}/student").hasAnyRole("STUDENT")
                         .requestMatchers("/schedule/**").hasAnyRole("GROUP_LEADER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/task/statistics").hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/task/{disciplineId}").hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/task/add").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/task/**").hasAnyRole("TEACHER", "ADMIN")

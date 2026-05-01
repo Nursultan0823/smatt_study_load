@@ -1,29 +1,43 @@
 package com.example.smatt_study_load.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.TaskAttachmentDto;
 import com.example.smatt_study_load.DTO.TaskDto;
+import com.example.smatt_study_load.DTO.TaskStatisticsDto;
 import com.example.smatt_study_load.enums.AnnouncementType;
+import com.example.smatt_study_load.enums.ReportStatus;
+import com.example.smatt_study_load.enums.Role;
 import com.example.smatt_study_load.models.Announcement;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
+import com.example.smatt_study_load.models.Report;
+import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.models.TaskAttachment;
 import com.example.smatt_study_load.models.TeacherProfile;
+import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.AnnouncementRepository;
 import com.example.smatt_study_load.repository.DisciplineRepository;
+import com.example.smatt_study_load.repository.ReportRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
+import com.example.smatt_study_load.repository.StudentProfileRepository;
 import com.example.smatt_study_load.repository.TaskAttachmentRepository;
 import com.example.smatt_study_load.repository.TaskRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
+import com.example.smatt_study_load.repository.UserRepository;
+import com.example.smatt_study_load.utils.UserDetailsImpl;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -35,6 +49,9 @@ public class TaskService {
         private final TaskAttachmentRepository taskAttachmentRepository;
         private final ScheduleRepository scheduleRepository;
         private final AnnouncementRepository announcementRepository;
+        private final UserRepository userRepository;
+        private final StudentProfileRepository studentProfileRepository;
+        private final ReportRepository reportRepository;
   @Transactional
 public void addTaskWithFiles(String title,
                              String description,
@@ -129,6 +146,140 @@ public List<TaskDto> getTasksByDiscipline(int disciplineId) {
                 return dto;
             })
             .toList();
+}
+@Transactional(readOnly = true)
+public ResponseEntity<?> getTaskStatistics(Authentication authentication) {
+    if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+        return ResponseEntity.status(401).body(new Response("Пользователь не авторизован"));
+    }
+
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    User user = userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+    if (hasRole(user, Role.ADMIN)) {
+        return ResponseEntity.ok(buildDeadlineStatistics(taskRepository.findAll()));
+    }
+
+    if (hasRole(user, Role.TEACHER)) {
+        TeacherProfile teacher = teacherProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
+        return ResponseEntity.ok(
+                buildTeacherStatistics(taskRepository.findByCreatedById(teacher.getId()))
+        );
+    }
+
+    if (hasRole(user, Role.STUDENT) || hasRole(user, Role.GROUP_LEADER)) {
+        StudentProfile student = studentProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Студент не найден"));
+        return ResponseEntity.ok(buildStudentStatistics(student));
+    }
+
+    return ResponseEntity.status(403).body(new Response("Недостаточно прав"));
+}
+
+private TaskStatisticsDto buildDeadlineStatistics(List<Task> tasks) {
+    LocalDateTime now = LocalDateTime.now();
+    long overdueTasks = tasks.stream()
+            .filter(task -> isDeadlinePassed(task, now))
+            .count();
+
+    return new TaskStatisticsDto(tasks.size(), overdueTasks, 0, 0, 0, 0, null);
+}
+
+private TaskStatisticsDto buildTeacherStatistics(List<Task> tasks) {
+    LocalDateTime now = LocalDateTime.now();
+
+    long overdueTasks = tasks.stream()
+            .filter(task -> isDeadlinePassed(task, now))
+            .count();
+
+    long tasksWithoutReports = tasks.stream()
+            .filter(task -> task.getReports() == null || task.getReports().isEmpty())
+            .count();
+
+    long pendingReviewReports = tasks.stream()
+            .flatMap(task -> task.getReports().stream())
+            .filter(report -> report.getStatus() == ReportStatus.SUBMITTED)
+            .count();
+
+    long checkedReports = tasks.stream()
+            .flatMap(task -> task.getReports().stream())
+            .filter(report -> report.getStatus() == ReportStatus.CHECKED)
+            .count();
+
+    long acceptedReports = tasks.stream()
+            .flatMap(task -> task.getReports().stream())
+            .filter(report -> report.getStatus() == ReportStatus.ACCEPTED)
+            .count();
+
+    String nextDeadline = tasks.stream()
+            .map(Task::getDeadline)
+            .filter(deadline -> deadline != null && deadline.isAfter(now))
+            .min(LocalDateTime::compareTo)
+            .map(LocalDateTime::toString)
+            .orElse(null);
+
+    return new TaskStatisticsDto(
+            tasks.size(),
+            overdueTasks,
+            tasksWithoutReports,
+            pendingReviewReports,
+            checkedReports,
+            acceptedReports,
+            nextDeadline
+    );
+}
+
+private TaskStatisticsDto buildStudentStatistics(StudentProfile student) {
+    List<Task> tasks = taskRepository.findAssignedToGroup(student.getGroup().getId());
+    Map<Integer, Report> latestReportsByTask = new HashMap<>();
+
+    reportRepository.findByStudentId(student.getId()).forEach(report -> {
+        int taskId = report.getTask().getId();
+        Report latestReport = latestReportsByTask.get(taskId);
+
+        if (latestReport == null || isSubmittedAfter(report, latestReport)) {
+            latestReportsByTask.put(taskId, report);
+        }
+    });
+
+    LocalDateTime now = LocalDateTime.now();
+    long overdueTasks = tasks.stream()
+            .filter(task -> isStudentTaskOverdue(
+                    task,
+                    latestReportsByTask.get(task.getId()),
+                    now
+            ))
+            .count();
+
+    return new TaskStatisticsDto(tasks.size(), overdueTasks, 0, 0, 0, 0, null);
+}
+
+private boolean isDeadlinePassed(Task task, LocalDateTime now) {
+    return task.getDeadline() != null && task.getDeadline().isBefore(now);
+}
+
+private boolean isStudentTaskOverdue(Task task, Report latestReport, LocalDateTime now) {
+    if (!isDeadlinePassed(task, now)) {
+        return false;
+    }
+
+    return latestReport == null || latestReport.getStatus() != ReportStatus.ACCEPTED;
+}
+
+private boolean isSubmittedAfter(Report report, Report latestReport) {
+    if (report.getSubmittedAt() == null) {
+        return false;
+    }
+
+    return latestReport.getSubmittedAt() == null
+            || report.getSubmittedAt().isAfter(latestReport.getSubmittedAt());
+}
+
+private boolean hasRole(User user, Role role) {
+    return user.getRoles().stream()
+            .anyMatch(userRole -> userRole.getName() == role);
 }
 public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
     TaskAttachment attachment = taskAttachmentRepository.findById(attachmentId)

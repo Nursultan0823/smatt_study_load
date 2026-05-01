@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,11 +36,17 @@ public class TaskController {
             @RequestParam int disciplineId,
             @RequestParam int createdById,
             @RequestParam(required = false) String deadline,
-            @RequestParam(required = false) List<MultipartFile> files  
+            @RequestParam(required = false) List<MultipartFile> files
     ) {
-        taskService.addTaskWithFiles(title, description, disciplineId, createdById, deadline,files);
+        taskService.addTaskWithFiles(title, description, disciplineId, createdById, deadline, files);
         return ResponseEntity.ok(new Response("Задача с файлом добавлена"));
     }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<?> getTaskStatistics(Authentication authentication) {
+        return taskService.getTaskStatistics(authentication);
+    }
+
     @GetMapping("/{disciplineId}")
 public List<TaskDto> getTasksByDiscipline(@PathVariable int disciplineId) {
     return taskService.getTasksByDiscipline(disciplineId);
