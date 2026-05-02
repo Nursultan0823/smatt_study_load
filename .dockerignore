@@ -1,6 +1,6 @@
 target
-.mvn
 .git
-.gitignore
-Dockerfile
-docker-compose.yml
+.github
+.idea
+*.iml
+.env
