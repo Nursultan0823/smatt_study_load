@@ -45,13 +45,15 @@ public class WebConfigs {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN","GROUP_LEADER")
+                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN", "GROUP_LEADER")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/schedule/{teacherId}/schedules").hasAnyRole("TEACHER")
                         .requestMatchers("/schedule/{groupId}/student").hasAnyRole("STUDENT")
                         .requestMatchers("/schedule/**").hasAnyRole("GROUP_LEADER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/task/statistics").hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/task/{disciplineId}").hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/task/statistics")
+                        .hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/task/{disciplineId}")
+                        .hasAnyRole("STUDENT", "GROUP_LEADER", "TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/task/add").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/task/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/task/**").hasAnyRole("TEACHER", "ADMIN")
@@ -71,8 +73,11 @@ public class WebConfigs {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
-config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://95.217.88.31:8033"));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
