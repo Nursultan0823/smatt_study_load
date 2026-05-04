@@ -22,6 +22,7 @@ import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.UmmMaterial;
+import com.example.smatt_study_load.models.UmmMaterialKind;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
@@ -346,6 +347,8 @@ public class AdminInitializer {
                         "https://ru.wikipedia.org/wiki/Объектно-ориентированное_программирование"
                 ),
                 now.minusDays(30),
+                UmmMaterialKind.LECTURE,
+                "Объектно-ориентированное программирование",
                 ummMaterialRepository
         );
 
@@ -360,6 +363,8 @@ public class AdminInitializer {
                         "https://en.wikipedia.org/wiki/SOLID"
                 ),
                 now.minusDays(25),
+                UmmMaterialKind.LECTURE,
+                "Принципы проектирования",
                 ummMaterialRepository
         );
 
@@ -374,6 +379,8 @@ public class AdminInitializer {
                         "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/package-summary.html"
                 ),
                 now.minusDays(20),
+                UmmMaterialKind.UMK,
+                "Коллекции и обобщённое программирование",
                 ummMaterialRepository
         );
 
@@ -388,6 +395,8 @@ public class AdminInitializer {
                         "https://ru.wikipedia.org/wiki/Design_Patterns"
                 ),
                 now.minusDays(15),
+                UmmMaterialKind.LAB,
+                "Паттерны проектирования",
                 ummMaterialRepository
         );
 
@@ -401,6 +410,8 @@ public class AdminInitializer {
                         "https://docs.oracle.com/javase/tutorial/essential/exceptions/"
                 ),
                 now.minusDays(10),
+                UmmMaterialKind.LECTURE,
+                "Исключения и ошибки",
                 ummMaterialRepository
         );
 
@@ -416,6 +427,8 @@ public class AdminInitializer {
                         "https://ru.wikipedia.org/wiki/Реляционная_СУБД"
                 ),
                 now.minusDays(28),
+                UmmMaterialKind.LECTURE,
+                "Основы реляционных СУБД",
                 ummMaterialRepository
         );
 
@@ -430,6 +443,8 @@ public class AdminInitializer {
                         "https://www.w3schools.com/sql/"
                 ),
                 now.minusDays(22),
+                UmmMaterialKind.UMK,
+                "Язык SQL",
                 ummMaterialRepository
         );
 
@@ -444,6 +459,8 @@ public class AdminInitializer {
                         "https://habr.com/ru/articles/254773/"
                 ),
                 now.minusDays(18),
+                UmmMaterialKind.LECTURE,
+                "Проектирование схемы БД",
                 ummMaterialRepository
         );
 
@@ -458,6 +475,8 @@ public class AdminInitializer {
                         "https://use-the-index-luke.com/"
                 ),
                 now.minusDays(12),
+                UmmMaterialKind.LAB,
+                "Оптимизация запросов",
                 ummMaterialRepository
         );
 
@@ -472,6 +491,21 @@ public class AdminInitializer {
                         "https://ru.wikipedia.org/wiki/ACID"
                 ),
                 now.minusDays(5),
+                UmmMaterialKind.LECTURE,
+                "Транзакции и изоляция",
+                ummMaterialRepository
+        );
+
+        createUmmIfNotExists(
+                "Глоссарий терминов реляционных СУБД",
+                "Краткие определения: кортеж, отношение, ключ, внешний ключ, ссылочная целостность, "
+                        + "представление, триггер, хранимая процедура.",
+                databases,
+                teacher2,
+                List.of("https://www.postgresql.org/docs/current/glossary.html"),
+                now.minusDays(2),
+                UmmMaterialKind.EXTRA,
+                "Справочная информация",
                 ummMaterialRepository
         );
     }
@@ -482,6 +516,8 @@ public class AdminInitializer {
                                       TeacherProfile author,
                                       List<String> urls,
                                       LocalDateTime createdAt,
+                                      UmmMaterialKind materialKind,
+                                      String section,
                                       UmmMaterialRepository ummMaterialRepository) {
         boolean alreadyExists = ummMaterialRepository.findAll().stream()
                 .anyMatch(m -> title.equals(m.getTitle())
@@ -499,6 +535,10 @@ public class AdminInitializer {
         material.setAuthor(author);
         material.setCreatedAt(createdAt);
         material.setUpdatedAt(createdAt);
+        material.setMaterialKind(materialKind != null ? materialKind : UmmMaterialKind.GENERAL);
+        if (section != null && !section.isBlank()) {
+            material.setSection(section.trim());
+        }
         material.setUrlList(new ArrayList<>(urls));
         ummMaterialRepository.save(material);
         System.out.println("УММ создан: " + title);

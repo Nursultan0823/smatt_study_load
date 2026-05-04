@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.UmmDisciplineStatDto;
 import com.example.smatt_study_load.DTO.UmmMaterialDto;
 import com.example.smatt_study_load.DTO.UmmMaterialShortDto;
+import com.example.smatt_study_load.models.UmmMaterialKind;
 import com.example.smatt_study_load.service.UmmMaterialService;
 
 import lombok.AllArgsConstructor;
@@ -28,12 +30,29 @@ public class UmmController {
 
     private final UmmMaterialService service;
 
+    @GetMapping("/meta/discipline-stats")
+    public List<UmmDisciplineStatDto> disciplineStats() {
+        return service.disciplineStats();
+    }
+
+    @GetMapping("/meta/sections")
+    public List<String> sections(@RequestParam int disciplineId) {
+        return service.sectionsForDiscipline(disciplineId);
+    }
+
     @GetMapping
     public List<UmmMaterialShortDto> list(
             @RequestParam(required = false) Integer disciplineId,
             @RequestParam(required = false) Integer authorId,
-            @RequestParam(required = false) String search) {
-        return service.search(disciplineId, authorId, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String materialKind,
+            @RequestParam(required = false) String section) {
+        return service.search(
+                disciplineId,
+                authorId,
+                search,
+                parseKind(materialKind),
+                section);
     }
 
     @GetMapping("/{id}")
@@ -47,9 +66,19 @@ public class UmmController {
             @RequestParam(required = false) String description,
             @RequestParam int disciplineId,
             @RequestParam int authorId,
+            @RequestParam(required = false) String materialKind,
+            @RequestParam(required = false) String section,
             @RequestParam(required = false) List<String> urls,
             @RequestParam(required = false) List<MultipartFile> files) {
-        UmmMaterialDto dto = service.create(title, description, disciplineId, authorId, urls, files);
+        UmmMaterialDto dto = service.create(
+                title,
+                description,
+                disciplineId,
+                authorId,
+                parseKindOrDefault(materialKind),
+                section,
+                urls,
+                files);
         return ResponseEntity.ok(dto);
     }
 
@@ -59,10 +88,36 @@ public class UmmController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) Integer disciplineId,
+            @RequestParam(required = false) String materialKind,
+            @RequestParam(required = false) String section,
             @RequestParam(required = false) List<String> urls,
             @RequestParam(required = false) List<MultipartFile> files) {
-        UmmMaterialDto dto = service.update(id, title, description, disciplineId, urls, files);
+        UmmMaterialDto dto = service.update(
+                id,
+                title,
+                description,
+                disciplineId,
+                parseKind(materialKind),
+                section,
+                urls,
+                files);
         return ResponseEntity.ok(dto);
+    }
+
+    private static UmmMaterialKind parseKindOrDefault(String raw) {
+        UmmMaterialKind k = parseKind(raw);
+        return k != null ? k : UmmMaterialKind.GENERAL;
+    }
+
+    private static UmmMaterialKind parseKind(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return UmmMaterialKind.valueOf(raw.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @DeleteMapping("/{id}")

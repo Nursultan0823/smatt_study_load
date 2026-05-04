@@ -11,6 +11,8 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,6 +36,14 @@ public class UmmMaterial {
 
     @Column(length = 5000)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "material_kind", nullable = false, columnDefinition = "varchar(32) default 'GENERAL'")
+    private UmmMaterialKind materialKind = UmmMaterialKind.GENERAL;
+
+    /** Тематический раздел внутри дисциплины (только для навигации и фильтрации) */
+    @Column(length = 255)
+    private String section;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

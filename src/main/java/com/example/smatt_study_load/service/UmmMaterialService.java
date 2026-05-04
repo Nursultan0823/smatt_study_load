@@ -14,9 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.smatt_study_load.DTO.UmmMaterialAttachmentDto;
 import com.example.smatt_study_load.DTO.UmmMaterialDto;
 import com.example.smatt_study_load.DTO.UmmMaterialShortDto;
+import com.example.smatt_study_load.DTO.UmmDisciplineStatDto;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.UmmMaterial;
+import com.example.smatt_study_load.models.UmmMaterialKind;
 import com.example.smatt_study_load.models.UmmMaterialAttachment;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
@@ -35,10 +37,32 @@ public class UmmMaterialService {
     private final TeacherProfileRepository teacherProfileRepository;
 
     @Transactional(readOnly = true)
-    public List<UmmMaterialShortDto> search(Integer disciplineId, Integer authorId, String search) {
-        return materialRepository.search(disciplineId, authorId, search).stream()
+    public List<UmmMaterialShortDto> search(Integer disciplineId,
+                                            Integer authorId,
+                                            String search,
+                                            UmmMaterialKind materialKind,
+                                            String sectionFilter) {
+        String searchNorm = normalizeSearch(search);
+        String kindStr = materialKind != null ? materialKind.name() : null;
+        String sectionEq = sectionFilter != null && !sectionFilter.isBlank() ? sectionFilter.trim() : null;
+        return materialRepository.search(
+                disciplineId,
+                authorId,
+                searchNorm,
+                kindStr,
+                sectionEq).stream()
                 .map(this::toShortDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UmmDisciplineStatDto> disciplineStats() {
+        return materialRepository.summarizeByDiscipline();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> sectionsForDiscipline(int disciplineId) {
+        return materialRepository.findDistinctSectionsByDisciplineId(disciplineId);
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +77,8 @@ public class UmmMaterialService {
                                  String description,
                                  int disciplineId,
                                  int authorId,
+                                 UmmMaterialKind materialKind,
+                                 String section,
                                  List<String> urls,
                                  List<MultipartFile> files) {
         Discipline discipline = disciplineRepository.findById(disciplineId)
@@ -63,6 +89,8 @@ public class UmmMaterialService {
         UmmMaterial material = new UmmMaterial();
         material.setTitle(title);
         material.setDescription(description);
+        material.setMaterialKind(materialKind != null ? materialKind : UmmMaterialKind.GENERAL);
+        material.setSection(normalizeSection(section));
         material.setCreatedAt(LocalDateTime.now());
         material.setUpdatedAt(LocalDateTime.now());
         material.setDiscipline(discipline);
@@ -88,6 +116,8 @@ public class UmmMaterialService {
                                  String title,
                                  String description,
                                  Integer disciplineId,
+                                 UmmMaterialKind materialKind,
+                                 String section,
                                  List<String> urls,
                                  List<MultipartFile> files) {
         UmmMaterial material = materialRepository.findById(id)
@@ -103,6 +133,12 @@ public class UmmMaterialService {
             Discipline discipline = disciplineRepository.findById(disciplineId)
                     .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
             material.setDiscipline(discipline);
+        }
+        if (materialKind != null) {
+            material.setMaterialKind(materialKind);
+        }
+        if (section != null) {
+            material.setSection(normalizeSection(section));
         }
         if (urls != null) {
             for (String url : urls) {
@@ -158,6 +194,22 @@ public class UmmMaterialService {
                 .body(attachment.getFileData());
     }
 
+    private static String normalizeSection(String section) {
+        if (section == null) {
+            return null;
+        }
+        String t = section.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String normalizeSearch(String search) {
+        if (search == null) {
+            return null;
+        }
+        String t = search.trim();
+        return t.isEmpty() ? null : t;
+    }
+
     private void attachFiles(UmmMaterial material, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) return;
         for (MultipartFile file : files) {
@@ -186,6 +238,8 @@ public class UmmMaterialService {
         dto.setDisciplineName(m.getDiscipline().getName());
         dto.setAuthorId(m.getAuthor().getId());
         dto.setAuthorName(m.getAuthor().getUser().getFullName());
+        dto.setMaterialKind(m.getMaterialKind() != null ? m.getMaterialKind().name() : UmmMaterialKind.GENERAL.name());
+        dto.setSection(m.getSection());
         dto.setAttachmentsCount(m.getAttachments() != null ? m.getAttachments().size() : 0);
         dto.setUrlsCount(m.getUrlList() != null ? m.getUrlList().size() : 0);
         return dto;
@@ -202,6 +256,8 @@ public class UmmMaterialService {
         dto.setDisciplineName(m.getDiscipline().getName());
         dto.setAuthorId(m.getAuthor().getId());
         dto.setAuthorName(m.getAuthor().getUser().getFullName());
+        dto.setMaterialKind(m.getMaterialKind() != null ? m.getMaterialKind().name() : UmmMaterialKind.GENERAL.name());
+        dto.setSection(m.getSection());
         dto.setUrls(m.getUrlList() != null ? new ArrayList<>(m.getUrlList()) : new ArrayList<>());
         dto.setAttachments(
                 m.getAttachments().stream().map(att -> {

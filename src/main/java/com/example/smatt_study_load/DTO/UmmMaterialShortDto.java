@@ -18,6 +18,9 @@ public class UmmMaterialShortDto {
     private int authorId;
     private String authorName;
 
+    private String materialKind;
+    private String section;
+
     private int attachmentsCount;
     private int urlsCount;
 }

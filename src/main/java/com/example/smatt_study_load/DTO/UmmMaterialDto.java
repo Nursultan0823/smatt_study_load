@@ -19,6 +19,9 @@ public class UmmMaterialDto {
     private int authorId;
     private String authorName;
 
+    private String materialKind;
+    private String section;
+
     private List<String> urls;
     private List<UmmMaterialAttachmentDto> attachments;
 }
