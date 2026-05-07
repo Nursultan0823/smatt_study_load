@@ -1,9 +1,14 @@
 package com.example.smatt_study_load.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import com.example.smatt_study_load.DTO.Response;
+import com.example.smatt_study_load.DTO.TaskAnalyticsDto;
 import com.example.smatt_study_load.DTO.TaskAttachmentDto;
 import com.example.smatt_study_load.DTO.TaskDto;
 import com.example.smatt_study_load.DTO.TaskStatisticsDto;
@@ -178,10 +184,144 @@ public ResponseEntity<?> getTaskStatistics(Authentication authentication) {
     return ResponseEntity.status(403).body(new Response("Недостаточно прав"));
 }
 
+@Transactional(readOnly = true)
+public ResponseEntity<?> getTaskAnalytics(Authentication authentication) {
+    if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+        return ResponseEntity.status(401).body(new Response("Пользователь не авторизован"));
+    }
+
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    User user = userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+    if (hasRole(user, Role.ADMIN)) {
+        List<Task> tasks = taskRepository.findAll();
+        return ResponseEntity.ok(buildAnalytics(tasks, collectReports(tasks)));
+    }
+
+    if (hasRole(user, Role.TEACHER)) {
+        TeacherProfile teacher = teacherProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
+        List<Task> tasks = taskRepository.findByCreatedById(teacher.getId());
+        return ResponseEntity.ok(buildAnalytics(tasks, collectReports(tasks)));
+    }
+
+    if (hasRole(user, Role.STUDENT) || hasRole(user, Role.GROUP_LEADER)) {
+        StudentProfile student = studentProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Студент не найден"));
+        List<Task> tasks = taskRepository.findAssignedToGroup(student.getGroup().getId());
+        List<Report> reports = reportRepository.findByStudentId(student.getId());
+        return ResponseEntity.ok(buildAnalytics(tasks, reports));
+    }
+
+    return ResponseEntity.status(403).body(new Response("Недостаточно прав"));
+}
+
+private TaskAnalyticsDto buildAnalytics(List<Task> tasks, List<Report> reports) {
+    return new TaskAnalyticsDto(
+            buildSubmissionOverview(tasks, reports),
+            buildWeeklySubmissions(reports),
+            buildDisciplineAverageGrades(reports),
+            buildTopStudents(reports)
+    );
+}
+
+private List<Report> collectReports(List<Task> tasks) {
+    return tasks.stream()
+            .flatMap(task -> task.getReports().stream())
+            .toList();
+}
+
+private TaskAnalyticsDto.SubmissionOverview buildSubmissionOverview(List<Task> tasks, List<Report> reports) {
+    LocalDateTime now = LocalDateTime.now();
+    long submitted = reports.stream()
+            .filter(report -> report.getStatus() == ReportStatus.ACCEPTED)
+            .count();
+    long overdue = tasks.stream()
+            .filter(task -> isTeacherTaskOverdue(task, now))
+            .count();
+
+    return new TaskAnalyticsDto.SubmissionOverview(submitted, overdue);
+}
+
+private List<TaskAnalyticsDto.WeeklySubmissions> buildWeeklySubmissions(List<Report> reports) {
+    LocalDate monday = LocalDate.now().minusWeeks(7).with(java.time.DayOfWeek.MONDAY);
+    DateTimeFormatter labelFormatter = DateTimeFormatter.ofPattern("dd.MM");
+
+    Map<LocalDate, Long> countsByWeek = reports.stream()
+            .filter(report -> report.getSubmittedAt() != null)
+            .map(report -> report.getSubmittedAt().toLocalDate())
+            .filter(date -> !date.isBefore(monday))
+            .collect(Collectors.groupingBy(
+                    date -> date.with(java.time.DayOfWeek.MONDAY),
+                    Collectors.counting()
+            ));
+
+    List<TaskAnalyticsDto.WeeklySubmissions> result = new ArrayList<>();
+    for (int i = 0; i < 8; i++) {
+        LocalDate weekStart = monday.plusWeeks(i);
+        result.add(new TaskAnalyticsDto.WeeklySubmissions(
+                weekStart.toString(),
+                weekStart.format(labelFormatter),
+                countsByWeek.getOrDefault(weekStart, 0L)
+        ));
+    }
+
+    return result;
+}
+
+private List<TaskAnalyticsDto.DisciplineAverageGrade> buildDisciplineAverageGrades(List<Report> reports) {
+    return reports.stream()
+            .filter(report -> report.getGrade() != null)
+            .collect(Collectors.groupingBy(report -> report.getTask().getDiscipline()))
+            .entrySet()
+            .stream()
+            .map(entry -> new TaskAnalyticsDto.DisciplineAverageGrade(
+                    entry.getKey().getId(),
+                    entry.getKey().getName(),
+                    roundAverage(entry.getValue().stream().map(Report::getGrade).toList()),
+                    entry.getValue().size()
+            ))
+            .sorted(Comparator.comparing(TaskAnalyticsDto.DisciplineAverageGrade::getAverageGrade).reversed())
+            .toList();
+}
+
+private List<TaskAnalyticsDto.StudentPerformance> buildTopStudents(List<Report> reports) {
+    return reports.stream()
+            .filter(report -> report.getGrade() != null)
+            .collect(Collectors.groupingBy(Report::getStudent))
+            .entrySet()
+            .stream()
+            .map(entry -> new TaskAnalyticsDto.StudentPerformance(
+                    entry.getKey().getId(),
+                    entry.getKey().getUser().getFullName(),
+                    roundAverage(entry.getValue().stream().map(Report::getGrade).toList()),
+                    entry.getValue().size()
+            ))
+            .sorted(Comparator
+                    .comparing(TaskAnalyticsDto.StudentPerformance::getAverageGrade)
+                    .reversed()
+                    .thenComparing(TaskAnalyticsDto.StudentPerformance::getGradedReports, Comparator.reverseOrder()))
+            .limit(5)
+            .toList();
+}
+
+private double roundAverage(List<Integer> grades) {
+    if (grades.isEmpty()) {
+        return 0;
+    }
+
+    double average = grades.stream()
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(0);
+    return Math.round(average * 10.0) / 10.0;
+}
+
 private TaskStatisticsDto buildDeadlineStatistics(List<Task> tasks) {
     LocalDateTime now = LocalDateTime.now();
     long overdueTasks = tasks.stream()
-            .filter(task -> isDeadlinePassed(task, now))
+            .filter(task -> isTeacherTaskOverdue(task, now))
             .count();
 
     return new TaskStatisticsDto(tasks.size(), overdueTasks, 0, 0, 0, 0, null);
@@ -191,7 +331,7 @@ private TaskStatisticsDto buildTeacherStatistics(List<Task> tasks) {
     LocalDateTime now = LocalDateTime.now();
 
     long overdueTasks = tasks.stream()
-            .filter(task -> isDeadlinePassed(task, now))
+            .filter(task -> isTeacherTaskOverdue(task, now))
             .count();
 
     long tasksWithoutReports = tasks.stream()
@@ -258,6 +398,15 @@ private TaskStatisticsDto buildStudentStatistics(StudentProfile student) {
 
 private boolean isDeadlinePassed(Task task, LocalDateTime now) {
     return task.getDeadline() != null && task.getDeadline().isBefore(now);
+}
+
+private boolean isTeacherTaskOverdue(Task task, LocalDateTime now) {
+    if (!isDeadlinePassed(task, now)) {
+        return false;
+    }
+
+    return task.getReports().stream()
+            .noneMatch(report -> report.getStatus() == ReportStatus.ACCEPTED);
 }
 
 private boolean isStudentTaskOverdue(Task task, Report latestReport, LocalDateTime now) {

@@ -14,20 +14,28 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.smatt_study_load.enums.Role;
+import com.example.smatt_study_load.enums.AnnouncementType;
+import com.example.smatt_study_load.enums.ReportStatus;
 import com.example.smatt_study_load.enums.UserStatus;
+import com.example.smatt_study_load.models.Announcement;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
+import com.example.smatt_study_load.models.Report;
 import com.example.smatt_study_load.models.Roles;
 import com.example.smatt_study_load.models.Schedule;
 import com.example.smatt_study_load.models.StudentProfile;
+import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.UmmMaterial;
 import com.example.smatt_study_load.models.User;
+import com.example.smatt_study_load.repository.AnnouncementRepository;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
+import com.example.smatt_study_load.repository.ReportRepository;
 import com.example.smatt_study_load.repository.RoleRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.StudentProfileRepository;
+import com.example.smatt_study_load.repository.TaskRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
 import com.example.smatt_study_load.repository.UmmMaterialRepository;
 import com.example.smatt_study_load.repository.UserRepository;
@@ -44,7 +52,10 @@ public class AdminInitializer {
                                       GroupEntityRepository groupRepository,
                                       DisciplineRepository disciplineRepository,
                                       ScheduleRepository scheduleRepository,
-                                      UmmMaterialRepository ummMaterialRepository) {
+                                      UmmMaterialRepository ummMaterialRepository,
+                                      TaskRepository taskRepository,
+                                      ReportRepository reportRepository,
+                                      AnnouncementRepository announcementRepository) {
         return args -> {
 
             initRoles(roleRepository);
@@ -55,6 +66,16 @@ public class AdminInitializer {
             initDisciplines(disciplineRepository);
             initSchedules(groupRepository, disciplineRepository, teacherProfileRepository, scheduleRepository);
             initUmmMaterials(disciplineRepository, teacherProfileRepository, ummMaterialRepository);
+            initDemoStatisticsData(
+                    groupRepository,
+                    disciplineRepository,
+                    teacherProfileRepository,
+                    studentProfileRepository,
+                    userRepository,
+                    taskRepository,
+                    reportRepository,
+                    announcementRepository
+            );
 
             System.out.println("Инициализация данных завершена");
         };
@@ -502,5 +523,231 @@ public class AdminInitializer {
         material.setUrlList(new ArrayList<>(urls));
         ummMaterialRepository.save(material);
         System.out.println("УММ создан: " + title);
+    }
+
+    private void initDemoStatisticsData(GroupEntityRepository groupRepository,
+                                        DisciplineRepository disciplineRepository,
+                                        TeacherProfileRepository teacherProfileRepository,
+                                        StudentProfileRepository studentProfileRepository,
+                                        UserRepository userRepository,
+                                        TaskRepository taskRepository,
+                                        ReportRepository reportRepository,
+                                        AnnouncementRepository announcementRepository) {
+        GroupEntity group1 = groupRepository.findByName("ИВТ-21-1")
+                .orElseThrow(() -> new RuntimeException("Группа ИВТ-21-1 не найдена"));
+        GroupEntity group2 = groupRepository.findByName("ИВТ-21-2")
+                .orElseThrow(() -> new RuntimeException("Группа ИВТ-21-2 не найдена"));
+
+        Discipline programming = disciplineRepository.findByName("Программирование")
+                .orElseThrow(() -> new RuntimeException("Дисциплина Программирование не найдена"));
+        Discipline databases = disciplineRepository.findByName("Базы данных")
+                .orElseThrow(() -> new RuntimeException("Дисциплина Базы данных не найдена"));
+
+        TeacherProfile teacher1 = teacherProfileRepository.findByUserEmail("teacher1@example.com")
+                .orElseThrow(() -> new RuntimeException("Преподаватель teacher1@example.com не найден"));
+        TeacherProfile teacher2 = teacherProfileRepository.findByUserEmail("teacher2@example.com")
+                .orElseThrow(() -> new RuntimeException("Преподаватель teacher2@example.com не найден"));
+
+        User studentUser1 = userRepository.findByEmail("student1@example.com")
+                .orElseThrow(() -> new RuntimeException("Пользователь student1@example.com не найден"));
+        User studentUser2 = userRepository.findByEmail("student2@example.com")
+                .orElseThrow(() -> new RuntimeException("Пользователь student2@example.com не найден"));
+
+        StudentProfile student1 = studentProfileRepository.findByUser(studentUser1)
+                .orElseThrow(() -> new RuntimeException("Студент student1@example.com не найден"));
+        StudentProfile student2 = studentProfileRepository.findByUser(studentUser2)
+                .orElseThrow(() -> new RuntimeException("Студент student2@example.com не найден"));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Task oop = createTaskIfNotExists(
+                "Демо: ООП и наследование",
+                "Подготовить Java-проект с иерархией классов, интерфейсами и unit-тестами.",
+                programming,
+                teacher1,
+                now.minusDays(35),
+                now.minusDays(10),
+                taskRepository
+        );
+        Task collections = createTaskIfNotExists(
+                "Демо: Коллекции Java",
+                "Решить набор задач на List, Set, Map и сравнить сложность операций.",
+                programming,
+                teacher1,
+                now.minusDays(24),
+                now.plusDays(5),
+                taskRepository
+        );
+        Task patterns = createTaskIfNotExists(
+                "Демо: Паттерны проектирования",
+                "Описать и реализовать два поведенческих паттерна на выбранном примере.",
+                programming,
+                teacher1,
+                now.minusDays(14),
+                now.minusDays(2),
+                taskRepository
+        );
+        Task sqlSelect = createTaskIfNotExists(
+                "Демо: SQL выборки и JOIN",
+                "Составить запросы SELECT с фильтрами, группировками и JOIN.",
+                databases,
+                teacher2,
+                now.minusDays(28),
+                now.minusDays(4),
+                taskRepository
+        );
+        Task normalization = createTaskIfNotExists(
+                "Демо: Нормализация базы данных",
+                "Спроектировать схему до 3НФ и объяснить устранённые аномалии.",
+                databases,
+                teacher2,
+                now.minusDays(18),
+                now.plusDays(8),
+                taskRepository
+        );
+
+        createReportIfNotExists(oop, student1, "Сдана реализация классов и тесты.", ReportStatus.ACCEPTED, 95, now.minusWeeks(6), reportRepository);
+        createReportIfNotExists(collections, student1, "Отправляю решение, жду проверки.", ReportStatus.SUBMITTED, null, now.minusWeeks(1).plusDays(1), reportRepository);
+        createReportIfNotExists(patterns, student1, "Черновик реализации паттернов.", ReportStatus.CHECKED, 82, now.minusWeeks(2).plusDays(2), reportRepository);
+
+        createReportIfNotExists(sqlSelect, student2, "SQL-запросы и скриншоты результата.", ReportStatus.SUBMITTED, null, now.minusWeeks(1), reportRepository);
+        createReportIfNotExists(normalization, student2, "Схема БД и пояснительная записка.", ReportStatus.ACCEPTED, 88, now.minusWeeks(3), reportRepository);
+
+        createDemoAnnouncementIfNotExists(
+                "Демо: новое задание",
+                "Добавлено задание по коллекциям Java. Проверьте дедлайн и требования.",
+                AnnouncementType.TASK_CREATED,
+                collections.getId(),
+                programming,
+                teacher1,
+                List.of(group1),
+                now.minusDays(7),
+                announcementRepository
+        );
+        createDemoAnnouncementIfNotExists(
+                "Демо: напоминание о дедлайне",
+                "До дедлайна по паттернам проектирования осталось несколько дней.",
+                AnnouncementType.TASK_DEADLINE_REMINDER,
+                patterns.getId(),
+                programming,
+                teacher1,
+                List.of(group1),
+                now.minusDays(2),
+                announcementRepository
+        );
+        createDemoAnnouncementIfNotExists(
+                "Демо: дедлайн по SQL",
+                "Работа по SQL выборкам просрочена, отправьте отчёт как можно скорее.",
+                AnnouncementType.TASK_DEADLINE_REMINDER,
+                sqlSelect.getId(),
+                databases,
+                teacher2,
+                List.of(group2),
+                now.minusDays(1),
+                announcementRepository
+        );
+
+        System.out.println("Демо-данные для статистики созданы");
+    }
+
+    private Task createTaskIfNotExists(String title,
+                                       String description,
+                                       Discipline discipline,
+                                       TeacherProfile teacher,
+                                       LocalDateTime createdAt,
+                                       LocalDateTime deadline,
+                                       TaskRepository taskRepository) {
+        return taskRepository.findAll().stream()
+                .filter(task -> title.equals(task.getTitle())
+                        && task.getDiscipline() != null
+                        && task.getDiscipline().getId() == discipline.getId())
+                .findFirst()
+                .map(task -> {
+                    task.setDescription(description);
+                    task.setCreatedBy(teacher);
+                    task.setCreatedAt(createdAt);
+                    task.setDeadline(deadline);
+                    return taskRepository.save(task);
+                })
+                .orElseGet(() -> {
+                    Task task = new Task();
+                    task.setTitle(title);
+                    task.setDescription(description);
+                    task.setDiscipline(discipline);
+                    task.setCreatedBy(teacher);
+                    task.setCreatedAt(createdAt);
+                    task.setDeadline(deadline);
+                    return taskRepository.save(task);
+                });
+    }
+
+    private void createReportIfNotExists(Task task,
+                                         StudentProfile student,
+                                         String comment,
+                                         ReportStatus status,
+                                         Integer grade,
+                                         LocalDateTime submittedAt,
+                                         ReportRepository reportRepository) {
+        List<Report> matchingReports = reportRepository.findByTaskIdAndStudentId(task.getId(), student.getId())
+                .stream()
+                .filter(report -> comment.equals(report.getComment()))
+                .toList();
+
+        if (!matchingReports.isEmpty()) {
+            Report report = matchingReports.get(0);
+            report.setStatus(status);
+            report.setGrade(grade);
+            report.setSubmittedAt(submittedAt);
+            report.setSubmittedByUser(student.getUser());
+            report.setCommentTeacher(status == ReportStatus.SUBMITTED ? null : "Демо-проверка преподавателя");
+            reportRepository.save(report);
+
+            matchingReports.stream()
+                    .skip(1)
+                    .forEach(reportRepository::delete);
+            return;
+        }
+
+        Report report = new Report();
+        report.setTask(task);
+        report.setStudent(student);
+        report.setSubmittedByUser(student.getUser());
+        report.setComment(comment);
+        report.setStatus(status);
+        report.setGrade(grade);
+        report.setSubmittedAt(submittedAt);
+        report.setCommentTeacher(status == ReportStatus.SUBMITTED ? null : "Демо-проверка преподавателя");
+        reportRepository.save(report);
+    }
+
+    private void createDemoAnnouncementIfNotExists(String title,
+                                                  String content,
+                                                  AnnouncementType type,
+                                                  int targetId,
+                                                  Discipline discipline,
+                                                  TeacherProfile teacher,
+                                                  List<GroupEntity> groups,
+                                                  LocalDateTime createdAt,
+                                                  AnnouncementRepository announcementRepository) {
+        boolean alreadyExists = announcementRepository.findAll().stream()
+                .anyMatch(announcement -> title.equals(announcement.getTitle())
+                        && announcement.getTargetId() == targetId
+                        && announcement.getType() == type);
+
+        if (alreadyExists) {
+            return;
+        }
+
+        Announcement announcement = new Announcement();
+        announcement.setTitle(title);
+        announcement.setContent(content);
+        announcement.setType(type);
+        announcement.setTargetId(targetId);
+        announcement.setDiscipline(discipline);
+        announcement.setTeacher(teacher);
+        announcement.setGroups(new ArrayList<>(groups));
+        announcement.setCreatedAt(createdAt);
+        announcement.setMeetingUrl(null);
+        announcementRepository.save(announcement);
     }
 }
