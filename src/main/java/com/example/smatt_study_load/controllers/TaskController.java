@@ -47,6 +47,11 @@ public class TaskController {
         return taskService.getTaskStatistics(authentication);
     }
 
+    @GetMapping("/analytics")
+    public ResponseEntity<?> getTaskAnalytics(Authentication authentication) {
+        return taskService.getTaskAnalytics(authentication);
+    }
+
     @GetMapping("/{disciplineId}")
 public List<TaskDto> getTasksByDiscipline(@PathVariable int disciplineId) {
     return taskService.getTasksByDiscipline(disciplineId);
