@@ -1,6 +1,5 @@
 package com.example.smatt_study_load.controllers;
 
-import com.example.smatt_study_load.repository.TaskRepository;
 import java.util.List;
 
 import org.springframework.http.MediaType;
@@ -18,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.TaskDto;
-import com.example.smatt_study_load.models.Task;
 import com.example.smatt_study_load.service.TaskService;
 
 import lombok.AllArgsConstructor;
@@ -27,7 +25,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @RequestMapping("/task")
 public class TaskController {
-    private final TaskRepository taskRepository;
     private final TaskService taskService;
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> addTaskWithFile(
@@ -36,9 +33,10 @@ public class TaskController {
             @RequestParam int disciplineId,
             @RequestParam int createdById,
             @RequestParam(required = false) String deadline,
-            @RequestParam(required = false) List<MultipartFile> files
+            @RequestParam(required = false) List<MultipartFile> files,
+            Authentication authentication
     ) {
-        taskService.addTaskWithFiles(title, description, disciplineId, createdById, deadline, files);
+        taskService.addTaskWithFiles(title, description, disciplineId, createdById, deadline, files, authentication);
         return ResponseEntity.ok(new Response("Задача с файлом добавлена"));
     }
 
@@ -50,6 +48,16 @@ public class TaskController {
     @GetMapping("/analytics")
     public ResponseEntity<?> getTaskAnalytics(Authentication authentication) {
         return taskService.getTaskAnalytics(authentication);
+    }
+
+    @GetMapping("/detail/{taskId}")
+    public TaskDto getTaskById(@PathVariable int taskId, Authentication authentication) {
+        return taskService.getTaskById(taskId, authentication);
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<?> getCurrentUserTasks(Authentication authentication) {
+        return taskService.getCurrentUserTasks(authentication);
     }
 
     @GetMapping("/{disciplineId}")
@@ -67,9 +75,10 @@ public ResponseEntity<?> updateTask(
         @RequestParam(required = false) String description,
         @RequestParam(required = false) Integer disciplineId,
         @RequestParam(required = false) String deadline,
-        @RequestParam(required = false) List<MultipartFile> files
+        @RequestParam(required = false) List<MultipartFile> files,
+        Authentication authentication
 ) {
-    taskService.updateTask(taskId, title, description, disciplineId, deadline, files);
+    taskService.updateTask(taskId, title, description, disciplineId, deadline, files, authentication);
     return ResponseEntity.ok(new Response("Задача обновлена"));
 }
 @DeleteMapping("/attachments/{attachmentId}")
@@ -78,9 +87,8 @@ public ResponseEntity<?> deleteAttachment(@PathVariable int attachmentId) {
     return ResponseEntity.ok(new Response("Файл удален"));
 }
 @DeleteMapping("/{taskId}")
-public ResponseEntity<?> deleteTask(@PathVariable int taskId) {
-   Task task= taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Файл не найден"));
-   taskRepository.delete(task);
+public ResponseEntity<?> deleteTask(@PathVariable int taskId, Authentication authentication) {
+   taskService.deleteTask(taskId, authentication);
     return ResponseEntity.ok(new Response("задача удалена"));
 }
 }

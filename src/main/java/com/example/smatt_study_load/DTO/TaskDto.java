@@ -12,8 +12,12 @@ public class TaskDto {
     private String description;
     private String disciplineName;
     private Integer disciplineId;
+    private Integer createdById;
     private String teacherName;
     private LocalDateTime createdAt;
     private LocalDateTime deadline;
+    private int reportsCount;
+    private int pendingReportsCount;
+    private int acceptedReportsCount;
     private List<TaskAttachmentDto> attachments;
 }

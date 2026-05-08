@@ -10,7 +10,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.smatt_study_load.DTO.AddScheduleDTO;
 import com.example.smatt_study_load.DTO.GetDisciplineDTO;
@@ -18,6 +20,7 @@ import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.TeacherScheduleDto;
 import com.example.smatt_study_load.DTO.TeacherShortDto;
 import com.example.smatt_study_load.DTO.UpcomingScheduleDto;
+import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.Discipline;
 import com.example.smatt_study_load.models.GroupEntity;
 import com.example.smatt_study_load.models.Schedule;
@@ -92,6 +95,9 @@ public void updateSchedule(int id, AddScheduleDTO dto) {
     scheduleRepository.save(schedule);
 }
   public List<TeacherScheduleDto> getSchedulesByTeacher(int teacherId) {
+    teacherProfileRepository.findByIdAndUser_EnabledTrueAndUser_Status(teacherId, UserStatus.APPROVED)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Преподаватель не найден"));
+
     List<Schedule> schedules = scheduleRepository.findByTeacherIdOrderByDayOfWeekAscStartTimeAsc(teacherId);
 
     return schedules.stream().map(schedule -> {
@@ -159,7 +165,9 @@ public List<UpcomingScheduleDto> getUpcomingSchedulesByGroup(int groupId, int li
     }
 
     public List<TeacherShortDto> getAllTeachers() {
-        return teacherProfileRepository.findAll().stream()
+        return teacherProfileRepository
+                .findByUser_EnabledTrueAndUser_StatusOrderByUser_FullNameAsc(UserStatus.APPROVED)
+                .stream()
                 .map(tp -> new TeacherShortDto(
                         tp.getId(),
                         tp.getUser() != null ? tp.getUser().getFullName() : "Неизвестно",

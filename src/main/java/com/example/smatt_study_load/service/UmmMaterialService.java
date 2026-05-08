@@ -4,12 +4,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.smatt_study_load.DTO.UmmMaterialAttachmentDto;
 import com.example.smatt_study_load.DTO.UmmMaterialDto;
@@ -81,14 +83,17 @@ public class UmmMaterialService {
                                  String section,
                                  List<String> urls,
                                  List<MultipartFile> files) {
+        requireText(title, "Название материала обязательно");
+        requireText(description, "Описание материала обязательно");
+
         Discipline discipline = disciplineRepository.findById(disciplineId)
                 .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
         TeacherProfile author = teacherProfileRepository.findById(authorId)
                 .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
 
         UmmMaterial material = new UmmMaterial();
-        material.setTitle(title);
-        material.setDescription(description);
+        material.setTitle(title.trim());
+        material.setDescription(description.trim());
         material.setMaterialKind(materialKind != null ? materialKind : UmmMaterialKind.GENERAL);
         material.setSection(normalizeSection(section));
         material.setCreatedAt(LocalDateTime.now());
@@ -200,6 +205,12 @@ public class UmmMaterialService {
         }
         String t = section.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+        }
     }
 
     private static String normalizeSearch(String search) {

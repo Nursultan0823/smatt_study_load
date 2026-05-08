@@ -14,8 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.TaskAnalyticsDto;
@@ -64,7 +66,18 @@ public void addTaskWithFiles(String title,
                              int disciplineId,
                              int createdById,
                              String deadline,
-                             List<MultipartFile> files) {
+                             List<MultipartFile> files,
+                             Authentication authentication) {
+
+    User currentUser = getAuthenticatedUser(authentication);
+    if (!hasRole(currentUser, Role.ADMIN)) {
+        TeacherProfile currentTeacher = teacherProfileRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Преподаватель не найден"));
+
+        if (currentTeacher.getId() != createdById) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Нельзя создать задание от имени другого преподавателя");
+        }
+    }
 
     Discipline discipline = disciplineRepository.findById(disciplineId)
             .orElseThrow(() -> new RuntimeException("Дисциплина не найдена"));
@@ -126,32 +139,86 @@ public void addTaskWithFiles(String title,
 @Transactional(readOnly = true)
 public List<TaskDto> getTasksByDiscipline(int disciplineId) {
     return taskRepository.findByDisciplineId(disciplineId).stream()
-            .map(task -> {
-                TaskDto dto = new TaskDto();
-                dto.setId(task.getId());
-                dto.setTitle(task.getTitle());
-                dto.setDescription(task.getDescription());
-                dto.setDisciplineName(task.getDiscipline().getName());
-                dto.setDisciplineId(task.getDiscipline().getId());
-                dto.setTeacherName(task.getCreatedBy().getUser().getFullName());
-                dto.setCreatedAt(task.getCreatedAt());
-                dto.setDeadline(task.getDeadline());
-
-                dto.setAttachments(
-                        task.getAttachments().stream()
-                                .map(att -> {
-                                    TaskAttachmentDto a = new TaskAttachmentDto();
-                                    a.setId(att.getId());
-                                    a.setFileName(att.getFileName());
-                                    a.setContentType(att.getContentType());
-                                    return a;
-                                })
-                                .toList()
-                );
-
-                return dto;
-            })
+            .map(this::toTaskDto)
             .toList();
+}
+
+@Transactional(readOnly = true)
+public ResponseEntity<?> getCurrentUserTasks(Authentication authentication) {
+    User user = getAuthenticatedUser(authentication);
+
+    if (hasRole(user, Role.ADMIN)) {
+        return ResponseEntity.ok(taskRepository.findAll().stream()
+                .map(this::toTaskDto)
+                .toList());
+    }
+
+    if (hasRole(user, Role.TEACHER)) {
+        TeacherProfile teacher = teacherProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Преподаватель не найден"));
+
+        return ResponseEntity.ok(taskRepository.findByCreatedById(teacher.getId()).stream()
+                .map(this::toTaskDto)
+                .toList());
+    }
+
+    if (hasRole(user, Role.STUDENT) || hasRole(user, Role.GROUP_LEADER)) {
+        StudentProfile student = studentProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Студент не найден"));
+
+        return ResponseEntity.ok(taskRepository.findAssignedToGroup(student.getGroup().getId()).stream()
+                .map(this::toTaskDto)
+                .toList());
+    }
+
+    return ResponseEntity.status(403).body(new Response("Недостаточно прав"));
+}
+
+@Transactional(readOnly = true)
+public TaskDto getTaskById(int taskId, Authentication authentication) {
+    Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new RuntimeException("Задача не найдена"));
+    authorizeTaskView(task, authentication);
+    return toTaskDto(task);
+}
+
+private TaskDto toTaskDto(Task task) {
+    TaskDto dto = new TaskDto();
+    dto.setId(task.getId());
+    dto.setTitle(task.getTitle());
+    dto.setDescription(task.getDescription());
+    dto.setDisciplineName(task.getDiscipline().getName());
+    dto.setDisciplineId(task.getDiscipline().getId());
+    dto.setCreatedById(task.getCreatedBy().getId());
+    dto.setTeacherName(task.getCreatedBy().getUser().getFullName());
+    dto.setCreatedAt(task.getCreatedAt());
+    dto.setDeadline(task.getDeadline());
+
+    dto.setReportsCount(task.getReports() != null ? task.getReports().size() : 0);
+    dto.setPendingReportsCount(task.getReports() != null
+            ? (int) task.getReports().stream()
+                    .filter(report -> report.getStatus() == ReportStatus.SUBMITTED)
+                    .count()
+            : 0);
+    dto.setAcceptedReportsCount(task.getReports() != null
+            ? (int) task.getReports().stream()
+                    .filter(report -> report.getStatus() == ReportStatus.ACCEPTED)
+                    .count()
+            : 0);
+
+    dto.setAttachments(
+            task.getAttachments().stream()
+                    .map(att -> {
+                        TaskAttachmentDto a = new TaskAttachmentDto();
+                        a.setId(att.getId());
+                        a.setFileName(att.getFileName());
+                        a.setContentType(att.getContentType());
+                        return a;
+                    })
+                    .toList()
+    );
+
+    return dto;
 }
 @Transactional(readOnly = true)
 public ResponseEntity<?> getTaskStatistics(Authentication authentication) {
@@ -430,6 +497,67 @@ private boolean hasRole(User user, Role role) {
     return user.getRoles().stream()
             .anyMatch(userRole -> userRole.getName() == role);
 }
+
+private User getAuthenticatedUser(Authentication authentication) {
+    if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не авторизован");
+    }
+
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    return userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не найден"));
+}
+
+private void authorizeTaskView(Task task, Authentication authentication) {
+    User user = getAuthenticatedUser(authentication);
+
+    if (hasRole(user, Role.ADMIN)) {
+        return;
+    }
+
+    if (hasRole(user, Role.TEACHER)) {
+        TeacherProfile teacher = teacherProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Преподаватель не найден"));
+
+        if (task.getCreatedBy().getId() == teacher.getId()) {
+            return;
+        }
+    }
+
+    if (hasRole(user, Role.STUDENT) || hasRole(user, Role.GROUP_LEADER)) {
+        StudentProfile student = studentProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Студент не найден"));
+
+        boolean assignedToGroup = taskRepository.findAssignedToGroup(student.getGroup().getId()).stream()
+                .anyMatch(assignedTask -> assignedTask.getId() == task.getId());
+
+        if (assignedToGroup) {
+            return;
+        }
+    }
+
+    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+}
+
+private void authorizeTaskMutation(Task task, Authentication authentication) {
+    User user = getAuthenticatedUser(authentication);
+
+    if (hasRole(user, Role.ADMIN)) {
+        return;
+    }
+
+    if (hasRole(user, Role.TEACHER)) {
+        TeacherProfile teacher = teacherProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Преподаватель не найден"));
+
+        if (task.getCreatedBy().getId() == teacher.getId()) {
+            return;
+        }
+    }
+
+    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+}
+
 public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
     TaskAttachment attachment = taskAttachmentRepository.findById(attachmentId)
             .orElseThrow(() -> new RuntimeException("Файл не найден"));
@@ -445,9 +573,11 @@ public void updateTask(int taskId,
                        String description,
                        Integer disciplineId,
                        String deadline,
-                       List<MultipartFile> files) {
+                       List<MultipartFile> files,
+                       Authentication authentication) {
     Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Задача не найдена"));
+    authorizeTaskMutation(task, authentication);
 
     if (title != null && !title.isBlank()) {
         task.setTitle(title);
@@ -491,6 +621,14 @@ public void updateTask(int taskId,
 
     taskRepository.save(task);
 }
+
+public void deleteTask(int taskId, Authentication authentication) {
+    Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new RuntimeException("Задача не найдена"));
+    authorizeTaskMutation(task, authentication);
+    taskRepository.delete(task);
+}
+
 public void deleteAttachment(int attachmentId) {
     TaskAttachment attachment = taskAttachmentRepository.findById(attachmentId)
             .orElseThrow(() -> new RuntimeException("Файл не найден"));

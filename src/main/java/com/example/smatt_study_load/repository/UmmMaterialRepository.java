@@ -60,4 +60,8 @@ public interface UmmMaterialRepository extends JpaRepository<UmmMaterial, Intege
             order by d.name
             """)
     List<com.example.smatt_study_load.DTO.UmmDisciplineStatDto> summarizeByDiscipline();
+
+    long countByAuthor_Id(int authorId);
+
+    List<UmmMaterial> findTop4ByAuthor_IdOrderByCreatedAtDesc(int authorId);
 }
