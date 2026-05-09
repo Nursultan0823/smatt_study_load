@@ -3,12 +3,14 @@ package com.example.smatt_study_load.service;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.smatt_study_load.DTO.CurrentTeacherDTO;
 import com.example.smatt_study_load.DTO.DisciplineDto;
@@ -26,11 +28,13 @@ import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.UmmFile;
 import com.example.smatt_study_load.models.UmmMaterial;
 import com.example.smatt_study_load.models.User;
+import com.example.smatt_study_load.models.UserAvatar;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.ScheduleRepository;
 import com.example.smatt_study_load.repository.TeacherProfileRepository;
 import com.example.smatt_study_load.repository.UmmFileRepository;
 import com.example.smatt_study_load.repository.UmmMaterialRepository;
+import com.example.smatt_study_load.repository.UserAvatarRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 import com.example.smatt_study_load.utils.UserDetailsImpl;
 
@@ -45,6 +49,7 @@ public class TeacherService {
         private final DisciplineRepository disciplineRepository;
         private final UmmFileRepository ummFileRepository;
         private final UmmMaterialRepository ummMaterialRepository;
+        private final UserAvatarRepository userAvatarRepository;
       public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
             return ResponseEntity.status(401).body(new Response("Пользователь не авторизован"));
@@ -154,6 +159,7 @@ public List<DisciplineDto> getDisciplinesTeacherId(int teacherId) {
                         getTeacherName(teacher),
                         teacher.getUser() != null ? teacher.getUser().getEmail() : "",
                         teacher.getPosition(),
+                        hasTeacherAvatar(teacher),
                         scheduleRepository.findDisciplinesByTeacherId(teacher.getId()).size(),
                         Math.toIntExact(ummMaterialRepository.countByAuthor_Id(teacher.getId()))
                 ))
@@ -193,12 +199,44 @@ public List<DisciplineDto> getDisciplinesTeacherId(int teacherId) {
                 teacher.getUser() != null ? teacher.getUser().getEmail() : "",
                 teacher.getPosition(),
                 teacher.getUser() != null && teacher.getUser().isEnabled(),
+                hasTeacherAvatar(teacher),
                 disciplines.size(),
                 Math.toIntExact(ummMaterialRepository.countByAuthor_Id(teacherId)),
                 disciplines,
                 schedules,
                 recentMaterials
         );
+    }
+
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> getTeacherAvatar(int teacherId) {
+        TeacherProfile teacher = teacherProfileRepository
+                .findByIdAndUser_EnabledTrueAndUser_Status(teacherId, UserStatus.APPROVED)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Преподаватель не найден"));
+
+        if (teacher.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Фото преподавателя не найдено");
+        }
+
+        UserAvatar avatar = userAvatarRepository.findById(teacher.getUser().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Фото преподавателя не найдено"));
+
+        if (avatar.getData() == null || avatar.getData().length == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Фото преподавателя не найдено");
+        }
+
+        MediaType contentType = avatar.getContentType() != null
+                ? MediaType.parseMediaType(avatar.getContentType())
+                : MediaType.APPLICATION_OCTET_STREAM;
+
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(avatar.getData());
+    }
+
+    private boolean hasTeacherAvatar(TeacherProfile teacher) {
+        return teacher.getUser() != null && userAvatarRepository.existsById(teacher.getUser().getId());
     }
 
     private TeacherScheduleDto toTeacherScheduleDto(Schedule schedule) {

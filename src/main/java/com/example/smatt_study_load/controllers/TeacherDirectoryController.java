@@ -2,6 +2,7 @@ package com.example.smatt_study_load.controllers;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,5 +29,10 @@ public class TeacherDirectoryController {
     @GetMapping("/{teacherId}")
     public TeacherDetailDto getTeacher(@PathVariable int teacherId) {
         return teacherService.getTeacherDetail(teacherId);
+    }
+
+    @GetMapping("/{teacherId}/avatar")
+    public ResponseEntity<byte[]> getTeacherAvatar(@PathVariable int teacherId) {
+        return teacherService.getTeacherAvatar(teacherId);
     }
 }

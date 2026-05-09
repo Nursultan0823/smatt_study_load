@@ -10,6 +10,7 @@ public class TeacherDirectoryItemDto {
     private String fullName;
     private String email;
     private String position;
+    private boolean hasAvatar;
     private int disciplinesCount;
     private int materialsCount;
 }

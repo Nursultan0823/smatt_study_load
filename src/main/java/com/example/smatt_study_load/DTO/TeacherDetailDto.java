@@ -13,6 +13,7 @@ public class TeacherDetailDto {
     private String email;
     private String position;
     private boolean enabled;
+    private boolean hasAvatar;
     private int disciplinesCount;
     private int materialsCount;
     private List<GetDisciplineDTO> disciplines;
