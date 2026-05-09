@@ -54,6 +54,7 @@ public class WebConfigs {
                         .requestMatchers(HttpMethod.GET, "/teachers", "/teachers/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/schedule/disciplines", "/schedule/teachers")
                         .authenticated()
+                        .requestMatchers("/profile/**").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/student/**").hasAnyRole("STUDENT", "ADMIN", "GROUP_LEADER")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
