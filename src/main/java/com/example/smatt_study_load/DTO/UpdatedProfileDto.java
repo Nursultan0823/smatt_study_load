@@ -11,4 +11,6 @@ public class UpdatedProfileDto {
     private String email;
     private String token;
     private boolean hasAvatar;
+    private String phoneNumber;
+    private String whatsApp;
 }

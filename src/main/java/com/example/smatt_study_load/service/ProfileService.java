@@ -12,8 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.example.smatt_study_load.DTO.UpdateProfileRequest;
 import com.example.smatt_study_load.DTO.UpdatedProfileDto;
+import com.example.smatt_study_load.models.TeacherProfile;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.models.UserAvatar;
+import com.example.smatt_study_load.repository.TeacherProfileRepository;
 import com.example.smatt_study_load.repository.UserAvatarRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 import com.example.smatt_study_load.utils.UserDetailsImpl;
@@ -27,6 +29,7 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserAvatarRepository userAvatarRepository;
+    private final TeacherProfileRepository teacherProfileRepository;
     private final JwtService jwtService;
 
     @Transactional
@@ -51,6 +54,25 @@ public class ProfileService {
         user.setFullName(fullName);
         user.setEmail(email);
 
+        TeacherProfile teacherProfile = teacherProfileRepository.findByUser(user).orElse(null);
+        if (teacherProfile != null) {
+            if (request.getPhoneNumber() != null) {
+                teacherProfile.setPhoneNumber(normalizeOptionalContact(
+                        request.getPhoneNumber(),
+                        "Некорректный номер телефона"
+                ));
+            }
+
+            if (request.getWhatsApp() != null) {
+                teacherProfile.setWhatsApp(normalizeOptionalContact(
+                        request.getWhatsApp(),
+                        "Некорректный номер WhatsApp"
+                ));
+            }
+
+            teacherProfileRepository.save(teacherProfile);
+        }
+
         User saved = userRepository.save(user);
         String token = jwtService.generateToken(saved);
 
@@ -59,7 +81,9 @@ public class ProfileService {
                 saved.getFullName(),
                 saved.getEmail(),
                 token,
-                userAvatarRepository.existsById(saved.getId())
+                userAvatarRepository.existsById(saved.getId()),
+                teacherProfile != null ? teacherProfile.getPhoneNumber() : null,
+                teacherProfile != null ? teacherProfile.getWhatsApp() : null
         );
     }
 
@@ -126,5 +150,24 @@ public class ProfileService {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не найден"));
+    }
+
+    private String normalizeOptionalContact(String value, String lengthErrorMessage) {
+        String contact = value != null ? value.trim() : "";
+
+        if (contact.isBlank()) {
+            return null;
+        }
+
+        if (contact.length() > 40 || !contact.matches("^\\+?[0-9\\s()\\-]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, lengthErrorMessage);
+        }
+
+        int digitsCount = contact.replaceAll("\\D", "").length();
+        if (digitsCount < 7 || digitsCount > 15) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, lengthErrorMessage);
+        }
+
+        return contact;
     }
 }

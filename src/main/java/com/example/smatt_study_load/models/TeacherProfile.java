@@ -21,6 +21,12 @@ public class TeacherProfile {
 
     private String position;   // преподаватель, доцент и т.д.
 
+    @Column(length = 40)
+    private String phoneNumber;
+
+    @Column(length = 40)
+    private String whatsApp;
+
      @JsonIgnore
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)

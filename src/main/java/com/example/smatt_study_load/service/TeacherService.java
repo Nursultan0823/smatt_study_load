@@ -68,7 +68,9 @@ public class TeacherService {
                 user.getRoles().stream()
                         .map(role -> role.getName().name())
                         .toList(),
-                teacherProfile.getPosition().toString(),
+                teacherProfile.getPosition(),
+                teacherProfile.getPhoneNumber(),
+                teacherProfile.getWhatsApp(),
                 teacherProfile.getId()
         );
 
@@ -197,6 +199,8 @@ public List<DisciplineDto> getDisciplinesTeacherId(int teacherId) {
                 teacher.getId(),
                 getTeacherName(teacher),
                 teacher.getUser() != null ? teacher.getUser().getEmail() : "",
+                teacher.getPhoneNumber(),
+                teacher.getWhatsApp(),
                 teacher.getPosition(),
                 teacher.getUser() != null && teacher.getUser().isEnabled(),
                 hasTeacherAvatar(teacher),

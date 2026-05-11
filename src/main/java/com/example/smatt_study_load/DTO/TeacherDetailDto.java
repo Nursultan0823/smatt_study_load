@@ -11,6 +11,8 @@ public class TeacherDetailDto {
     private int id;
     private String fullName;
     private String email;
+    private String phoneNumber;
+    private String whatsApp;
     private String position;
     private boolean enabled;
     private boolean hasAvatar;
