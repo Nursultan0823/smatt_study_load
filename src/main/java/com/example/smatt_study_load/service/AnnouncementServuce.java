@@ -13,6 +13,7 @@ import com.example.smatt_study_load.models.AnnouncementReadStatus;
 import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.AnnouncementReadStatusRepository;
 import com.example.smatt_study_load.repository.AnnouncementRepository;
+import com.example.smatt_study_load.repository.TaskRepository;
 import com.example.smatt_study_load.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
@@ -23,9 +24,11 @@ public class AnnouncementServuce {
     private final AnnouncementRepository announcementRepository;
     private final AnnouncementReadStatusRepository announcementReadStatusRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
     public List<AnnouncementDto> getAnnouncementsForGroup(int groupId, int userId) {
     return announcementRepository.findByGroupsIdOrderByCreatedAtDesc(groupId)
             .stream()
+            .filter(this::isActualAnnouncement)
             .map(announcement -> toDto(announcement, userId))
             .filter(announcement -> !announcement.isSeen())
             .toList();
@@ -38,6 +41,7 @@ public List<AnnouncementDto> getLessonRemindersForTeacher(int teacherId, int use
                     AnnouncementType.LESSON_STARTING_SOON
             )
             .stream()
+            .filter(this::isActualAnnouncement)
             .map(announcement -> toDto(announcement, userId))
             .filter(announcement -> !announcement.isSeen())
             .toList();
@@ -46,6 +50,7 @@ public List<AnnouncementDto> getLessonRemindersForTeacher(int teacherId, int use
 public List<AnnouncementDto> getAnnouncementHistoryForGroup(int groupId, int userId) {
     return announcementRepository.findByGroupsIdOrderByCreatedAtDesc(groupId)
             .stream()
+            .filter(this::isActualAnnouncement)
             .map(announcement -> toDto(announcement, userId))
             .toList();
 }
@@ -57,8 +62,18 @@ public List<AnnouncementDto> getLessonReminderHistoryForTeacher(int teacherId, i
                     AnnouncementType.LESSON_STARTING_SOON
             )
             .stream()
+            .filter(this::isActualAnnouncement)
             .map(announcement -> toDto(announcement, userId))
             .toList();
+}
+
+private boolean isActualAnnouncement(Announcement announcement) {
+    if (announcement.getType() == AnnouncementType.TASK_CREATED
+            || announcement.getType() == AnnouncementType.TASK_DEADLINE_REMINDER) {
+        return taskRepository.existsById(announcement.getTargetId());
+    }
+
+    return true;
 }
 
 private AnnouncementDto toDto(Announcement announcement, int userId) {

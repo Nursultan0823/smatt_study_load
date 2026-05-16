@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.smatt_study_load.DTO.AddDisciplineRequest;
+import com.example.smatt_study_load.DTO.AdminManagedUserDto;
 import com.example.smatt_study_load.DTO.ChangeStudentGroupRequest;
 import com.example.smatt_study_load.DTO.GetDisciplineDTO;
 import com.example.smatt_study_load.DTO.GetgroupDTO;
@@ -15,13 +16,11 @@ import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.ScheduleDto;
 import com.example.smatt_study_load.DTO.UpdateGroupDto;
+import com.example.smatt_study_load.DTO.UpdateManagedUserRequest;
 import com.example.smatt_study_load.DTO.UserDto;
-import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.Discipline;
-import com.example.smatt_study_load.models.User;
 import com.example.smatt_study_load.repository.DisciplineRepository;
 import com.example.smatt_study_load.repository.GroupEntityRepository;
-import com.example.smatt_study_load.repository.UserRepository;
 import com.example.smatt_study_load.service.AdminService;
 
 import lombok.AllArgsConstructor;
@@ -35,7 +34,6 @@ import java.util.List;
 @RequestMapping("/admin")
 public class AdminController {
 
-    private final UserRepository userRepository;
     private final AdminService adminService;
     private final GroupEntityRepository groupEntityRepository;
     private final DisciplineRepository disciplineRepository;
@@ -44,46 +42,35 @@ public class AdminController {
     public List<UserDto> getPendingUsers() {
         return adminService.getPendingUser();
     }
+
+    @GetMapping("/users")
+    public List<AdminManagedUserDto> getUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status) {
+        return adminService.getManagedUsers(search, role, status);
+    }
+
+    @PatchMapping("/users/{userId}")
+    public AdminManagedUserDto updateUser(
+            @PathVariable int userId,
+            @RequestBody UpdateManagedUserRequest request) {
+        return adminService.updateManagedUser(userId, request);
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable int userId, Authentication authentication) {
+        adminService.deleteManagedUser(userId, authentication);
+        return ResponseEntity.ok(new Response("Пользователь удален"));
+    }
+
 @PutMapping("/approve/{id}")
 public ResponseEntity<?> approveUser(@PathVariable int id) {
-    User user = userRepository.findById(id).orElse(null);
-
-    if (user == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new Response("Пользователь не найден"));
-    }
-
-    try {
-        user.setStatus(UserStatus.APPROVED);
-        user.setEnabled(true);
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new Response("Пользователь подтвержден"));
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new Response("Ошибка при подтверждении пользователя"));
-    }
+    return adminService.approveUser(id);
 }
     @PutMapping("/reject/{id}")
     public ResponseEntity<?> rejectUser(@PathVariable int id) {
-         User user = userRepository.findById(id).orElse(null);
-
-    if (user == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new Response("Пользователь не найден"));
-    }
-
-    try {
-        user.setStatus(UserStatus.REJECTED);
-        user.setEnabled(true);
-        userRepository.save(user);
-
-        return ResponseEntity.ok("");
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new Response("Пользователь не найден"));
-    }
-    
+        return adminService.rejectUser(id);
     }
       @PostMapping("/addgroup")
       public ResponseEntity<?> AddGroup(@RequestBody GroupDTO groupDTO){

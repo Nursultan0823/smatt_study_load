@@ -134,6 +134,7 @@ public List<UpcomingScheduleDto> getUpcomingSchedulesByGroup(int groupId, int li
                             schedule.getDiscipline().getName(),
                             teacherName,
                             schedule.getRoom(),
+                            schedule.getUrl(),
                             nextStart,
                             nextEnd
                     );

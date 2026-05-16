@@ -11,6 +11,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Inte
 
     List<Announcement> findByGroupsIdOrderByCreatedAtDesc(int groupId);
     boolean existsByTypeAndTargetId(AnnouncementType type, int targetId);
+    List<Announcement> findByTypeInAndTargetId(List<AnnouncementType> types, int targetId);
 
     boolean existsByTypeAndTargetIdAndCreatedAtAfter(
             AnnouncementType type,

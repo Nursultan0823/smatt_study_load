@@ -11,6 +11,7 @@ public class UpcomingScheduleDto {
     private String disciplineName;
     private String teacherName;
     private String room;
+    private String url;
     private LocalDateTime startDateTime;
     private LocalDateTime endDateTime;
 }

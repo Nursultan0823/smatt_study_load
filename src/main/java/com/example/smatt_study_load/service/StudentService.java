@@ -5,11 +5,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.smatt_study_load.DTO.CurrentStudentDTO;
@@ -82,6 +84,11 @@ public class StudentService {
             .orElseThrow(() -> new RuntimeException("Студент не найден"));
         Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Задача не найдена"));
+        reportRepository.findFirstByTaskIdAndStudentIdOrderBySubmittedAtDescIdDesc(taskId, studentId)
+                .filter(this::isAcceptedAndGraded)
+                .ifPresent(report -> {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Задание уже принято и оценено");
+                });
             Report report=new Report();
             report.setComment(comment);
             report.setStatus(ReportStatus.SUBMITTED);
@@ -146,112 +153,20 @@ public void updateReport(int id,
 }
 @Transactional(readOnly = true)
 public List<ReportDTO> getReportsByTaskId(int taskId) {
-    return reportRepository.findByTaskId(taskId).stream()
-            .map(report -> {
-                ReportDTO dto = new ReportDTO();
-                dto.setId(report.getId());
-                dto.setComment(report.getComment());
-                dto.setCommentTeacher(report.getCommentTeacher());
-                dto.setGrade(report.getGrade());
-                dto.setStatus(report.getStatus());
-                dto.setSubmittedAt(report.getSubmittedAt());
-                dto.setTaskId(report.getTask().getId());
-                dto.setTaskTitle(report.getTask().getTitle());
-                dto.setStudentId(report.getStudent().getId());
-                dto.setStudentName(report.getStudent().getUser().getFullName());
-
-                if (report.getSubmittedByUser() != null) {
-                    dto.setSubmittedByUserName(report.getSubmittedByUser().getFullName());
-                }
-
-                dto.setAttachments(
-                        report.getAttachments().stream()
-                                .map(att -> {
-                                    ReportAttachmentDto attachmentDto = new ReportAttachmentDto();
-                                    attachmentDto.setId(att.getId());
-                                    attachmentDto.setFileName(att.getFileName());
-                                    attachmentDto.setContentType(att.getContentType());
-                                    return attachmentDto;
-                                })
-                                .toList()
-                );
-
-                return dto;
-            })
+    return reportRepository.findByTaskIdOrderBySubmittedAtDescIdDesc(taskId).stream()
+            .map(this::toReportDto)
             .toList();
 }
    @Transactional(readOnly = true)
 public List<ReportDTO> getAllReportsByStudent(int studentId) {
-    return reportRepository.findByStudentId(studentId).stream()
-            .map(report -> {
-                ReportDTO dto = new ReportDTO();
-                dto.setId(report.getId());
-                dto.setComment(report.getComment());
-                dto.setCommentTeacher(report.getCommentTeacher());
-                dto.setGrade(report.getGrade());
-                dto.setStatus(report.getStatus());
-                dto.setSubmittedAt(report.getSubmittedAt());
-                dto.setTaskId(report.getTask().getId());
-                dto.setTaskTitle(report.getTask().getTitle());
-                dto.setStudentId(report.getStudent().getId());
-                dto.setStudentName(report.getStudent().getUser().getFullName());
-
-                if (report.getSubmittedByUser() != null) {
-                    dto.setSubmittedByUserName(report.getSubmittedByUser().getFullName());
-                }
-
-                dto.setAttachments(
-                        report.getAttachments().stream()
-                                .map(att -> {
-                                    ReportAttachmentDto attachmentDto = new ReportAttachmentDto();
-                                    attachmentDto.setId(att.getId());
-                                    attachmentDto.setFileName(att.getFileName());
-                                    attachmentDto.setContentType(att.getContentType());
-                                    return attachmentDto;
-                                })
-                                .toList()
-                );
-
-                return dto;
-            })
+    return reportRepository.findByStudentIdOrderBySubmittedAtDescIdDesc(studentId).stream()
+            .map(this::toReportDto)
             .toList();
 }
    @Transactional(readOnly = true)
 public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId) {
-    return reportRepository.findByTaskIdAndStudentId(taskId, studentId).stream()
-            .map(report -> {
-                ReportDTO dto = new ReportDTO();
-                dto.setId(report.getId());
-                dto.setComment(report.getComment());
-                dto.setCommentTeacher(report.getCommentTeacher());
-                dto.setGrade(report.getGrade());
-                dto.setStatus(report.getStatus());
-                dto.setSubmittedAt(report.getSubmittedAt());
-
-                dto.setTaskId(report.getTask().getId());
-                dto.setTaskTitle(report.getTask().getTitle());
-
-                dto.setStudentId(report.getStudent().getId());
-                dto.setStudentName(report.getStudent().getUser().getFullName());
-
-                if (report.getSubmittedByUser() != null) {
-                    dto.setSubmittedByUserName(report.getSubmittedByUser().getFullName());
-                }
-
-                dto.setAttachments(
-                        report.getAttachments().stream()
-                                .map(att -> {
-                                    ReportAttachmentDto attachmentDto = new ReportAttachmentDto();
-                                    attachmentDto.setId(att.getId());
-                                    attachmentDto.setFileName(att.getFileName());
-                                    attachmentDto.setContentType(att.getContentType());
-                                    return attachmentDto;
-                                })
-                                .toList()
-                );
-
-                return dto;
-            })
+    return reportRepository.findByTaskIdAndStudentIdOrderBySubmittedAtDescIdDesc(taskId, studentId).stream()
+            .map(this::toReportDto)
             .toList();
 }
     public ResponseEntity<byte[]> downloadAttachment(int attachmentId) {
@@ -267,6 +182,7 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId)
     public void updateGrate(GrageDTO grageDTO){
            Report report =reportRepository.findById(grageDTO.getReportId()).orElseThrow(() -> new RuntimeException("Отчет не найден"));
            TeacherProfile teacherProfile= teacherProfileRepository.findById(grageDTO.getTeacherId()).orElseThrow(() -> new RuntimeException("Отчет не найден"));
+           ensureLatestReport(report);
            report.setSubmittedByUser(teacherProfile.getUser());
            report.setGrade(grageDTO.getGrade());
            report.setStatus(ReportStatus.ACCEPTED);
@@ -276,6 +192,7 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId)
                         String comment,
                         List<MultipartFile> files){
         Report report =reportRepository.findById(id).orElseThrow(() -> new RuntimeException("Отчет не найден"));
+        ensureLatestReport(report);
       
         if(comment !=null){
             report.setCommentTeacher(comment);
@@ -298,6 +215,84 @@ public List<ReportDTO> getReportsByTaskIdAndStudentId(int taskId, int studentId)
     }
 }
     reportRepository.save(report);
+}
+    public void deleteReport(int reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Отчет не найден"));
+
+        ensureLatestReport(report);
+
+        if (report.getStatus() != ReportStatus.SUBMITTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Удалить можно только отправленную последнюю попытку");
+        }
+
+        reportRepository.delete(report);
+    }
+
+    public void deleteReportAttachment(int attachmentId) {
+        ReportAttachment attachment = reporAttachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Файл не найден"));
+        Report report = attachment.getReport();
+
+        ensureLatestReport(report);
+
+        if (report.getStatus() != ReportStatus.SUBMITTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Удалить файл можно только у отправленной последней попытки");
+        }
+
+        reporAttachmentRepository.delete(attachment);
+    }
+
+private ReportDTO toReportDto(Report report) {
+    ReportDTO dto = new ReportDTO();
+    dto.setId(report.getId());
+    dto.setComment(report.getComment());
+    dto.setCommentTeacher(report.getCommentTeacher());
+    dto.setGrade(report.getGrade());
+    dto.setStatus(report.getStatus());
+    dto.setSubmittedAt(report.getSubmittedAt());
+    dto.setTaskId(report.getTask().getId());
+    dto.setTaskTitle(report.getTask().getTitle());
+    dto.setStudentId(report.getStudent().getId());
+    dto.setStudentName(report.getStudent().getUser().getFullName());
+
+    if (report.getSubmittedByUser() != null) {
+        dto.setSubmittedByUserName(report.getSubmittedByUser().getFullName());
+    }
+
+    dto.setAttachments(
+            report.getAttachments().stream()
+                    .map(att -> {
+                        ReportAttachmentDto attachmentDto = new ReportAttachmentDto();
+                        attachmentDto.setId(att.getId());
+                        attachmentDto.setFileName(att.getFileName());
+                        attachmentDto.setContentType(att.getContentType());
+                        return attachmentDto;
+                    })
+                    .toList()
+    );
+
+    return dto;
+}
+
+private void ensureLatestReport(Report report) {
+    if (report == null || report.getTask() == null || report.getStudent() == null) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректная попытка");
+    }
+
+    Report latestReport = reportRepository.findFirstByTaskIdAndStudentIdOrderBySubmittedAtDescIdDesc(
+                    report.getTask().getId(),
+                    report.getStudent().getId()
+            )
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Попытка не найдена"));
+
+    if (latestReport.getId() != report.getId()) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Редактировать можно только последнюю попытку");
+    }
+}
+
+private boolean isAcceptedAndGraded(Report report) {
+    return report.getStatus() == ReportStatus.ACCEPTED && report.getGrade() != null;
 }
 @Transactional(readOnly = true)
 public List<DisciplineDto> getDisciplinesByGroupId(int groupId) {

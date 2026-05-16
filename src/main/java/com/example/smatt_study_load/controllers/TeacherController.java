@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,9 +18,7 @@ import com.example.smatt_study_load.DTO.DisciplineDto;
 import com.example.smatt_study_load.DTO.GrageDTO;
 import com.example.smatt_study_load.DTO.ReportDTO;
 import com.example.smatt_study_load.DTO.Response;
-import com.example.smatt_study_load.models.ReportAttachment;
 import com.example.smatt_study_load.models.UmmFile;
-import com.example.smatt_study_load.repository.ReporAttachmentRepository;
 import com.example.smatt_study_load.repository.UmmFileRepository;
 import com.example.smatt_study_load.service.StudentService;
 import com.example.smatt_study_load.service.TeacherService;
@@ -35,7 +34,6 @@ public class TeacherController {
     
     private final TeacherService teacherService;
     private final StudentService studentService;
-    private final ReporAttachmentRepository reporAttachmentRepository;
     private final UmmFileRepository ummFileRepository;
       @GetMapping("/me")
     public ResponseEntity<?> getCurrentStudent (Authentication authentication) {
@@ -59,6 +57,8 @@ public ResponseEntity<byte[]> downloadAttachment(@PathVariable int attachmentId)
         try{
             studentService.updateGrate(grageDTO);
             return ResponseEntity.ok(new Response("Оценка добавлена"));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new Response(e.getReason()));
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("Ошибка оценки"));
         }
@@ -71,15 +71,20 @@ public ResponseEntity<byte[]> downloadAttachment(@PathVariable int attachmentId)
             try{
             studentService.checkedGrade(reportId,comment,files);
             return ResponseEntity.ok(new Response("Замечания добавлена"));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new Response(e.getReason()));
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Response("Ошибка замечания"));
         }
     }
           @DeleteMapping("/report/attachment/{attachmentId}")
     public ResponseEntity<?> deleteReportAttachment(@PathVariable int attachmentId){
-        ReportAttachment report = reporAttachmentRepository.findById(attachmentId).orElseThrow(() -> new RuntimeException("Файл не найден"));
-        reporAttachmentRepository.delete(report);
-        return ResponseEntity.ok(new Response( "Файл успешно удален"));
+        try {
+            studentService.deleteReportAttachment(attachmentId);
+            return ResponseEntity.ok(new Response( "Файл успешно удален"));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new Response(e.getReason()));
+        }
     }
     @PostMapping("/umm/add")
     public ResponseEntity<?> AddUmm(@RequestParam int disciplineId,

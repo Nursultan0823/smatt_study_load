@@ -6,6 +6,7 @@ import com.example.smatt_study_load.DTO.GroupStudentsResponseDto;
 import com.example.smatt_study_load.DTO.ResponseGroupDTO;
 import com.example.smatt_study_load.DTO.StudentShortDto;
 import com.example.smatt_study_load.DTO.UserShortDto;
+import com.example.smatt_study_load.enums.UserStatus;
 import com.example.smatt_study_load.models.GroupEntity;
 import com.example.smatt_study_load.models.StudentProfile;
 import com.example.smatt_study_load.models.User;
@@ -41,14 +42,19 @@ public class StudentProfileMapper {
         dto.setCourseNumber(group.getCourseNumber());
         dto.setSpecialty(group.getSpecialty());
 
-        if (group.getStarosta() != null) {
+        if (isApprovedStudent(group.getStarosta())) {
             dto.setStarostaId(group.getStarosta().getId());
-            if (group.getStarosta().getUser() != null) {
-                dto.setStarostaName(group.getStarosta().getUser().getFullName());
-            }
+            dto.setStarostaName(group.getStarosta().getUser().getFullName());
         }
 
         return dto;
+    }
+
+    private static boolean isApprovedStudent(StudentProfile studentProfile) {
+        return studentProfile != null
+                && studentProfile.getUser() != null
+                && studentProfile.getUser().isEnabled()
+                && studentProfile.getUser().getStatus() == UserStatus.APPROVED;
     }
 
     public static UserShortDto toUserDto(User user) {

@@ -59,32 +59,31 @@ public class AuthService {
     }
     @Transactional
     public void registerTeacher(RegisterTeacherRequest request){
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email уже занят");
-        }
-        Roles teacherRole = roleRepository.findByName(Role.TEACHER)
-                .orElseThrow(() -> new RuntimeException("Роль STUDENT не найдена"));
-                Set<Roles> teacherRoles = new HashSet<>();
-        teacherRoles.add(teacherRole);
-            User user = new User();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRoles(teacherRoles);
-        user.setStatus(UserStatus.PENDING);
-        user.setEnabled(false);
+        String email = requireText(request.getEmail(), "Email обязателен");
+        String fullName = requireText(request.getFullName(), "Имя обязательно");
+        String password = requireText(request.getPassword(), "Пароль обязателен");
+        String position = requireText(request.getPosition(), "Должность обязательна");
 
-        User savedUser = userRepository.save(user);
-        TeacherProfile teacherProfile =new TeacherProfile();
-        teacherProfile.setUser(savedUser);
-        teacherProfile.setPosition(request.getPosition());
+        Roles teacherRole = roleRepository.findByName(Role.TEACHER)
+                .orElseThrow(() -> new RuntimeException("Роль TEACHER не найдена"));
+        Set<Roles> teacherRoles = new HashSet<>();
+        teacherRoles.add(teacherRole);
+
+        User user = prepareUserForRegistration(email, fullName, password, teacherRoles);
+
+        studentProfileRepository.findByUser(user).ifPresent(this::removeStudentProfile);
+
+        TeacherProfile teacherProfile = teacherProfileRepository.findByUser(user)
+                .orElseGet(TeacherProfile::new);
+        teacherProfile.setUser(user);
+        teacherProfile.setPosition(position);
         teacherProfileRepository.save(teacherProfile);
     }
     @Transactional
     public void registerStudent(RegisterStudentRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email уже занят");
-        }
+        String email = requireText(request.getEmail(), "Email обязателен");
+        String fullName = requireText(request.getFullName(), "Имя обязательно");
+        String password = requireText(request.getPassword(), "Пароль обязателен");
 
         Roles studentRole = roleRepository.findByName(Role.STUDENT)
                 .orElseThrow(() -> new RuntimeException("Роль STUDENT не найдена"));
@@ -95,18 +94,13 @@ public class AuthService {
         Set<Roles> studentRoles = new HashSet<>();
         studentRoles.add(studentRole);
 
-        User user = new User();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRoles(studentRoles);
-        user.setStatus(UserStatus.PENDING);
-        user.setEnabled(false);
+        User user = prepareUserForRegistration(email, fullName, password, studentRoles);
 
-        User savedUser = userRepository.save(user);
+        teacherProfileRepository.findByUser(user).ifPresent(this::removeTeacherProfile);
 
-        StudentProfile studentProfile = new StudentProfile();
-        studentProfile.setUser(savedUser);
+        StudentProfile studentProfile = studentProfileRepository.findByUser(user)
+                .orElseGet(StudentProfile::new);
+        studentProfile.setUser(user);
         studentProfile.setGroup(groupEntity);
 
         studentProfileRepository.save(studentProfile);
@@ -132,5 +126,65 @@ public class AuthService {
        
         String token = jwtService.generateToken(user);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body( new AuthResponse(token));
+    }
+
+    private User prepareUserForRegistration(String email, String fullName, String password, Set<Roles> roles) {
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if (user != null
+                && user.getStatus() != UserStatus.REJECTED
+                && user.getStatus() != UserStatus.DELETED) {
+            throw new RuntimeException("Email уже занят");
+        }
+
+        if (user == null) {
+            user = new User();
+            user.setEmail(email);
+        }
+
+        user.setFullName(fullName);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRoles(roles);
+        user.setStatus(UserStatus.PENDING);
+        user.setEnabled(false);
+
+        return userRepository.save(user);
+    }
+
+    private void removeStudentProfile(StudentProfile studentProfile) {
+        GroupEntity group = studentProfile.getGroup();
+        User studentUser = studentProfile.getUser();
+
+        if (group != null && group.getStarosta() != null
+                && group.getStarosta().getId() == studentProfile.getId()) {
+            group.setStarosta(null);
+            groupEntityRepository.save(group);
+        }
+
+        if (studentUser != null) {
+            studentUser.setStudentProfile(null);
+        }
+
+        studentProfileRepository.delete(studentProfile);
+    }
+
+    private void removeTeacherProfile(TeacherProfile teacherProfile) {
+        User teacherUser = teacherProfile.getUser();
+
+        if (teacherUser != null) {
+            teacherUser.setTeacherProfile(null);
+        }
+
+        teacherProfileRepository.delete(teacherProfile);
+    }
+
+    private String requireText(String value, String message) {
+        String text = value != null ? value.trim() : "";
+
+        if (text.isBlank()) {
+            throw new RuntimeException(message);
+        }
+
+        return text;
     }
 }

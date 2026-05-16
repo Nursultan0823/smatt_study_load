@@ -45,7 +45,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return user.getStatus() != UserStatus.REJECTED;
+        return user.getStatus() != UserStatus.REJECTED
+                && user.getStatus() != UserStatus.DELETED;
     }
 
     @Override

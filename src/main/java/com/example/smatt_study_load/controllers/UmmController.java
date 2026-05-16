@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -14,11 +15,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.smatt_study_load.DTO.DepartmentMethodicalMaterialDto;
+import com.example.smatt_study_load.DTO.DepartmentMethodicalMaterialShortDto;
 import com.example.smatt_study_load.DTO.Response;
 import com.example.smatt_study_load.DTO.UmmDisciplineStatDto;
 import com.example.smatt_study_load.DTO.UmmMaterialDto;
 import com.example.smatt_study_load.DTO.UmmMaterialShortDto;
 import com.example.smatt_study_load.models.UmmMaterialKind;
+import com.example.smatt_study_load.service.DepartmentMethodicalMaterialService;
 import com.example.smatt_study_load.service.UmmMaterialService;
 
 import lombok.AllArgsConstructor;
@@ -29,15 +33,94 @@ import lombok.AllArgsConstructor;
 public class UmmController {
 
     private final UmmMaterialService service;
+    private final DepartmentMethodicalMaterialService methodicalService;
 
     @GetMapping("/meta/discipline-stats")
-    public List<UmmDisciplineStatDto> disciplineStats() {
-        return service.disciplineStats();
+    public List<UmmDisciplineStatDto> disciplineStats(Authentication authentication) {
+        return service.disciplineStats(authentication);
     }
 
     @GetMapping("/meta/sections")
     public List<String> sections(@RequestParam int disciplineId) {
         return service.sectionsForDiscipline(disciplineId);
+    }
+
+    @GetMapping("/methodical/count")
+    public long methodicalCount() {
+        return methodicalService.count();
+    }
+
+    @GetMapping("/methodical")
+    public List<DepartmentMethodicalMaterialShortDto> methodicalList(
+            @RequestParam(required = false) Integer disciplineId,
+            @RequestParam(required = false) String search) {
+        return methodicalService.search(disciplineId, search);
+    }
+
+    @GetMapping("/methodical/{id}")
+    public DepartmentMethodicalMaterialDto getMethodical(@PathVariable int id) {
+        return methodicalService.getById(id);
+    }
+
+    @PostMapping(value = "/methodical", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createMethodical(
+            @RequestParam String title,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Integer disciplineId,
+            @RequestParam(required = false) List<String> urls,
+            @RequestParam(required = false) List<MultipartFile> files,
+            Authentication authentication) {
+        DepartmentMethodicalMaterialDto dto = methodicalService.create(
+                title,
+                description,
+                disciplineId,
+                urls,
+                files,
+                authentication);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PatchMapping(value = "/methodical/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateMethodical(
+            @PathVariable int id,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Integer disciplineId,
+            @RequestParam(required = false, defaultValue = "false") boolean clearDiscipline,
+            @RequestParam(required = false) List<String> urls,
+            @RequestParam(required = false) List<MultipartFile> files) {
+        DepartmentMethodicalMaterialDto dto = methodicalService.update(
+                id,
+                title,
+                description,
+                disciplineId,
+                clearDiscipline,
+                urls,
+                files);
+        return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("/methodical/{id}")
+    public ResponseEntity<?> deleteMethodical(@PathVariable int id) {
+        methodicalService.delete(id);
+        return ResponseEntity.ok(new Response("Методическое указание удалено"));
+    }
+
+    @DeleteMapping("/methodical/{id}/urls")
+    public ResponseEntity<?> removeMethodicalUrl(@PathVariable int id, @RequestParam String url) {
+        methodicalService.removeUrl(id, url);
+        return ResponseEntity.ok(new Response("Ссылка удалена"));
+    }
+
+    @DeleteMapping("/methodical/attachments/{attachmentId}")
+    public ResponseEntity<?> deleteMethodicalAttachment(@PathVariable int attachmentId) {
+        methodicalService.deleteAttachment(attachmentId);
+        return ResponseEntity.ok(new Response("Файл удален"));
+    }
+
+    @GetMapping("/methodical/attachments/{attachmentId}/download")
+    public ResponseEntity<byte[]> downloadMethodical(@PathVariable int attachmentId) {
+        return methodicalService.downloadAttachment(attachmentId);
     }
 
     @GetMapping
@@ -46,18 +129,20 @@ public class UmmController {
             @RequestParam(required = false) Integer authorId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String materialKind,
-            @RequestParam(required = false) String section) {
+            @RequestParam(required = false) String section,
+            Authentication authentication) {
         return service.search(
                 disciplineId,
                 authorId,
                 search,
                 parseKind(materialKind),
-                section);
+                section,
+                authentication);
     }
 
     @GetMapping("/{id}")
-    public UmmMaterialDto getOne(@PathVariable int id) {
-        return service.getById(id);
+    public UmmMaterialDto getOne(@PathVariable int id, Authentication authentication) {
+        return service.getById(id, authentication);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

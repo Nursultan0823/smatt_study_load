@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     List<User> findByStatus(UserStatus status);
 
+    List<User> findAllByStatusNotOrderByFullNameAsc(UserStatus status);
+
     Optional<User> findByFullName(String fullname);
 
     Optional<User> findByEmail(String email);
